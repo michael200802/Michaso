@@ -1,15 +1,16 @@
-#ifndef RESOLVE_MATRIX_H
-#define RESOLVE_MATRIX_H
-
 #include "num.h"
 #include "text.h"
 #include <stdbool.h>
+#include <stdlib.h>
+
+#ifndef RESOLVE_MATRIX_H
+#define RESOLVE_MATRIX_H
 
 #define NXN_MAXN 3
 
 typedef struct
 {
-        num_t matrix[NXN_MAXN][NXN_MAXN+1];
+        num_t matrix[NXN_MAXN*2-1][NXN_MAXN+1];
         size_t nrows;
         size_t ncolumns;
         bool is_3x3;

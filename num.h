@@ -1,8 +1,8 @@
-#ifndef NUM_H
-#define NUM_H
-
 #include <stdio.h>
 #include <stdbool.h>
+
+#ifndef NUM_H
+#define NUM_H
 
 typedef struct
 {
@@ -11,6 +11,10 @@ typedef struct
 }num_t;
 
 #define INITIALIZER_NUM {.numerator = 0, .denominator = 1}
+
+#define set_num(num,_numerator,_denominator)	\
+	num.numerator = _numerator;		\
+	num.denominator = _denominator;
 
 #define float_to_int(num)\
 	((int)num)

@@ -6,8 +6,9 @@
 #include "num.h"
 #include "text.h"
 #include "resolve_matrix.h"
+#include <limits.h>
 
-#define NUMBER_MAX_LEN 20
+#define NUMBER_MAX_LEN 8
 
 #define LABEL_MATRIX_ELEM_ID 12
 #define COMBOBOX_NXN_ID 13
@@ -26,7 +27,7 @@
 #define MATRIX_Y 150
 
 #define ROW_SIZE LINE_HEIGHT
-#define COLUMN_SIZE 40
+#define COLUMN_SIZE 60
 
 #define METHOD_CRAMER "Metodo de Cramer."
 #define METHOD_G "Metodo de Gauss. "
@@ -76,7 +77,7 @@ text_t get_process(matrix_t matrix, HWND CB_method)
 		cat_text_in_text(process_gauss,process_jordan);
 		return process_gauss;
 	}
-	text_t defprocess = {.str[0] = '\0', .end = &defprocess.str[0]};
+	text_t defprocess = {};
 	cat_str_in_text(defprocess,"No se ha seleccionado ningun metodo.");
 	return defprocess;
 }
@@ -121,23 +122,24 @@ void * show_thread_routine(void * arg)
 
 		matrix_t matrix;
 		BOOL matrix_ready = get_matrix(show_thread_args.matrix_elem,show_thread_args.is_3x3,&matrix);
-		text_t text_equation_system = create_text();
-		text_t text_process = create_text();
+		text_t text_equation_system = {};//1
+		text_t text_process = {};//2
+
 		if(matrix_ready)
 		{
 			puts("ready");
 
-			text_equation_system = matrix_to_system(matrix);
-			printf("Sistema de ecuaciones:\n%s",text_equation_system.str);
+			text_equation_system = matrix_to_system(matrix);//1
+			text_process = get_process(matrix,show_thread_args.combobox_method);//2
 
-			text_process = get_process(matrix,show_thread_args.combobox_method);
+			printf("Sistema de ecuaciones:\n%s",text_equation_system.str);
 		}
 		else
 		{
 			puts("non-ready");
 
-			cat_str_in_text(text_equation_system,"Ingrese los datos en la matriz.");
-			cat_str_in_text(text_process,"Ingrese los datos en la matriz.");
+			cat_str_in_text(text_equation_system,"Ingrese los datos en la matriz.");//1
+			cat_str_in_text(text_process,"Ingrese los datos en la matriz.");//2
 		}
 
 		Edit_SetText(show_thread_args.edit_equation_system,text_equation_system.str);
@@ -145,6 +147,9 @@ void * show_thread_routine(void * arg)
 		Edit_SetText(show_thread_args.edit_process,text_process.str);
 
 		pthread_mutex_unlock(&show_thread_args.sleep_mutex);//sleep mutex
+
+		destroy_text(text_equation_system);//1
+		destroy_text(text_process);//2
 	}
 	return NULL;
 }
@@ -191,7 +196,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 										DestroyWindow(matrix_elem[i][NXN_MAXN]);
 									}
 									//change label
-									Static_SetText(label_matrix_elem,"    X       Y       TI         ");
+									DestroyWindow(label_matrix_elem);
+									label_matrix_elem = CreateWindow
+									(
+										WC_STATIC,
+										"       X               Y               TI",
+										WS_VISIBLE|WS_CHILD|WS_BORDER|SS_LEFT,
+										MATRIX_X,
+										MATRIX_Y-20,
+										COLUMN_SIZE*3,
+										20,
+										hWnd,
+										(HMENU)LABEL_MATRIX_ELEM_ID,
+										hCurInstance,
+										NULL
+									);
 									show_thread_args.is_3x3 = FALSE;
 								}
 								break;
@@ -234,12 +253,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 											NULL
 										);
 									}
-									Static_SetText(label_matrix_elem,"    X       Y       Z       TI    ");
+									DestroyWindow(label_matrix_elem);
+									label_matrix_elem = CreateWindow
+									(
+										WC_STATIC,
+										"       X               Y               Z               TI",
+										WS_VISIBLE|WS_CHILD|WS_BORDER|SS_LEFT,
+										MATRIX_X,
+										MATRIX_Y-20,
+										COLUMN_SIZE*4,
+										20,
+										hWnd,
+										(HMENU)LABEL_MATRIX_ELEM_ID,
+										hCurInstance,
+										NULL
+									);
 									show_thread_args.is_3x3 = TRUE;
 								}
-								send_signal_to_show_thread();
 								break;
 						}
+						send_signal_to_show_thread();
 					}
 					break;
 				case COMBOBOX_METODO_ID:
@@ -332,11 +365,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			label_matrix_elem = CreateWindow
 			(
 				WC_STATIC,
-				"    X       Y       Z       TI    ",
-				WS_VISIBLE|WS_CHILD|SS_LEFT|SS_SIMPLE,
+				"       X               Y               Z               TI",
+				WS_VISIBLE|WS_CHILD|WS_BORDER|SS_LEFT,
 				MATRIX_X,
 				MATRIX_Y-20,
-				1000,
+				COLUMN_SIZE*4,
 				20,
 				hWnd,
 				(HMENU)LABEL_MATRIX_ELEM_ID,
@@ -352,7 +385,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					matrix_elem[i][j] = CreateWindow
 					(
 						WC_EDIT,
-						"",
+						"1",
 						WS_CHILD|WS_BORDER|WS_VISIBLE|ES_CENTER,
 						MATRIX_X+COLUMN_SIZE*j,
 						MATRIX_Y+ROW_SIZE*i,
@@ -371,7 +404,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			(
 				WC_STATIC,
 				"Sistema de ecuaciones",
-				WS_CHILD|WS_VISIBLE|WS_BORDER|WS_OVERLAPPED|SS_CENTER|SS_SIMPLE,
+				WS_CHILD|WS_VISIBLE|WS_BORDER|SS_LEFT,
 				MATRIX_X,
 				MATRIX_Y + ROW_SIZE*NXN_MAXN + LINE_HEIGHT*3 - LABEL_DISTANCE,
 				COLUMN_SIZE*(NXN_MAXN+1),
@@ -387,11 +420,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			(
 				WC_EDIT,
 				"",
-				WS_CHILD|WS_VISIBLE|WS_OVERLAPPED|ES_READONLY|ES_LEFT|ES_MULTILINE,
+				WS_CHILD|WS_VISIBLE|WS_OVERLAPPED|WS_HSCROLL|ES_READONLY|ES_LEFT|ES_MULTILINE,
 				MATRIX_X,
 				MATRIX_Y + ROW_SIZE*NXN_MAXN + LINE_HEIGHT*3,
 				COLUMN_SIZE*(NXN_MAXN+1),
-				LINE_HEIGHT*3,
+				LINE_HEIGHT*4,
 				hWnd,
 				(HMENU)EDIT_EQUATION_SYSTEM_ID,
 				hCurInstance,
@@ -403,11 +436,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			(
 				WC_EDIT,
 				"",
-				WS_CHILD|WS_VISIBLE|WS_OVERLAPPED|WS_VSCROLL|ES_MULTILINE|ES_READONLY|ES_LEFT,
+				WS_CHILD|WS_VISIBLE|WS_OVERLAPPED|WS_VSCROLL|ES_MULTILINE|ES_READONLY|ES_CENTER,
 				MATRIX_X+COLUMN_SIZE*4+50,
 				LINE_HEIGHT,
-				780,
 				1000,
+				650,
 				hWnd,
 				(HMENU)EDIT_PROCESS_ID,
 				hCurInstance,
@@ -427,7 +460,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			//start show_thread
 			pthread_t show_thread;
-			pthread_create(&show_thread,NULL,show_thread_routine,NULL);
+			pthread_attr_t show_thread_attr;
+
+			pthread_attr_init(&show_thread_attr);
+			pthread_attr_setstacksize(&show_thread_attr,8000*1000);
+
+			pthread_create(&show_thread,&show_thread_attr,show_thread_routine,NULL);
+
+			pthread_attr_destroy(&show_thread_attr);
 
 			send_signal_to_show_thread();
 
@@ -475,7 +515,7 @@ int WINAPI WinMain(HINSTANCE hCurInstance, HINSTANCE hPrevInstance, LPSTR lpszCm
 		WS_EX_OVERLAPPEDWINDOW,
 		"MAINWND",
 		"Michaso",
-		WS_BORDER|WS_VISIBLE|WS_OVERLAPPEDWINDOW,
+		WS_BORDER|WS_VISIBLE|WS_OVERLAPPEDWINDOW|WS_MAXIMIZE,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -486,7 +526,7 @@ int WINAPI WinMain(HINSTANCE hCurInstance, HINSTANCE hPrevInstance, LPSTR lpszCm
 		NULL
 	);
 
-	ShowWindow(hWnd,SW_SHOWNORMAL);
+	ShowWindow(hWnd,SW_SHOWMAXIMIZED);
 
 	MSG msg;
 	while(GetMessage(&msg,hWnd,0,0) == TRUE)

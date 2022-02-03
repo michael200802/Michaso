@@ -1,57 +1,119 @@
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "num.h"
+
 #ifndef TEXT_H
 #define TEXT_H
 
-#include <string.h>
-#include <stdio.h>
-#include "num.h"
-
-#define TEXT_MAXLEN 1000
+#define TEXT_LEN 500
+#define TEXT_MINLEN 50
 typedef struct
 {
-	char str[TEXT_MAXLEN];
-	char * end;
+	size_t allocated_bytes;
+	size_t len;
+	char * str;
+
+	char _str[1];//it's useless
 }text_t;
 
-#define TEXT_INITIALIZER {.str[0] = '\0', .end = &text.str[0]}
+typedef struct
+{
+	size_t allocated_bytes;//it's useless
+	size_t len;
+	char * str;
 
-text_t create_text();
+	char _str[TEXT_MINLEN];
+}short_text_t;
 
-#define print_in_text(text,format,...)\
-	text.end += sprintf(text.end, format, __VA_ARGS__);
+#include "resolve_matrix.h"
 
-#define print_num_in_text(text,num)									\
-	if(is_num_fraction(num))									\
-        {												\
-                print_in_text(text,"%d/%d",float_to_int(num.numerator),float_to_int(num.denominator));	\
-        }												\
-        else												\
-        {												\
-                if(is_num_int(num))									\
-                {											\
-                        print_in_text(text,"%d",float_to_int(num.numerator));				\
-                }											\
-                else											\
-                {											\
-                        print_in_text(text,"%.2f",get_num(num));					\
-                }											\
-        }
+#define is_text_short(text)\
+	(sizeof(text._str) == sizeof(TEXT_MINLEN))
 
-#define add_ch_in_text(text,ch)\
-	*text.end = ch;        \
-	text.end++;            \
-	*text.end = '\0';
-
-#define cat_str_in_text(text,str)	\
-	strcat(text.end,str);		\
-	while(*text.end != '\0')	\
-	{				\
-		text.end++;		\
+#define allocate_mem(text,nbytes)																\
+	if(is_text_short(text) == false)															\
+	{																							\
+		if(text.str == NULL	|| text.allocated_bytes < (text.len+nbytes+1))						\
+		{																						\
+			text.allocated_bytes += TEXT_LEN*sizeof(char);										\
+			text.str = (char*)realloc(text.str,text.allocated_bytes);							\
+		}																						\
+	}																							\
+	else																						\
+	{																							\
+		text.str = text._str;																	\
 	}
 
-#define cat_text_in_text(dest,src)\
-	cat_str_in_text(dest,src.str);
+text_t create_text(const char * str);
 
-#define get_text_len(text)\
-	(size_t)(text.end-text.str)
+short_text_t create_short_text(const char * str);
+
+#define destroy_text(text)			\
+	if(is_text_short(text) == false)\
+	{								\
+		free(text.str);				\
+		text.str = NULL;			\
+	}
+
+#define clear_text(text)		\
+	destroy_text(text);			\
+	if(text.str != NULL)		\
+	{							\
+		text.str[0] = '\0';		\
+	}							\
+	text.len = 0;				\
+	text.allocated_bytes = 0;
+
+#define text_to_short(text)\
+	(*((short_text_t*)&(text)))
+
+#define get_text_end(text)\
+	(text.str+text.len)
+
+#define print_in_text(text,format,...)								\
+	allocate_mem(text,200);											\
+	text.len += sprintf(get_text_end(text), format, __VA_ARGS__);	\
+	allocate_mem(text,0);
+
+#define print_num_in_text(text,num)																	\
+	if(is_num_fraction(num))																		\
+	{																								\
+			print_in_text(text,"%d/%d",float_to_int(num.numerator),float_to_int(num.denominator));	\
+	}																								\
+	else																							\
+	{																								\
+			if(is_num_int(num))																		\
+			{																						\
+					print_in_text(text,"%d",float_to_int(num.numerator));							\
+			}																						\
+			else																					\
+			{																						\
+					print_in_text(text,"%.2f",get_num(num));										\
+			}																						\
+	}
+
+#define add_ch_in_text(text,ch)		\
+	allocate_mem(text,1);			\
+	*get_text_end(text) = ch;       \
+	text.len++;            			\
+	*get_text_end(text) = '\0';
+
+#define cat_str_in_text(text,str)						\
+	allocate_mem(text,strlen(str));						\
+	strcpy(get_text_end(text),str);						\
+	do													\
+	{													\
+		text.len++;										\
+	}while(*get_text_end(text) != '\0');
+
+
+#define cat_text_in_text(dest,src)				\
+	allocate_mem(dest,src.len);					\
+	strcpy(get_text_end(dest),src.str); 		\
+	dest.len += src.len;
+
+#define get_text_len(text)	\
+	(text.len)
 
 #endif

@@ -10,32 +10,46 @@ num_t abs_num(num_t num)
 
 num_t simplify_num(num_t num)
 {
-        if(is_num_fraction(num) == false)
-        {
-                if(num.numerator == num.denominator)
-                {
-                        num.numerator = 1;
-                        num.denominator = 1;
-                }
-                return num;
-        }
+	if(num.numerator == 0)
+	{
+		num.denominator = 1;
+		return num;
+	}
 
-        if(num.numerator < 0 && num.denominator < 0)
-        {
-                num.numerator *= -1;
-                num.denominator *= -1;
-        }
+	if(num.denominator < 0)
+	{
+		num.denominator *= -1;
+		num.numerator *= -1;
+	}
 
-        for(int i = 2, max = float_abs(num.denominator) > float_abs(num.numerator) ? float_abs(num.denominator) : float_abs(num.numerator); i <= max; i++)
-        {
-                if(float_to_int(num.denominator)%i == 0 && float_to_int(num.numerator)%i == 0)
-                {
-                        num.numerator /= i;
-                        num.denominator /= i;
-                }
-        }
+	if(is_num_fraction(num) == false)
+	{
+		if(num.numerator == num.denominator)
+		{
+				num.numerator = 1;
+				num.denominator = 1;
+		}
+		return num;
+	}
 
-        return num;
+	if(num.numerator < 0 && num.denominator < 0)
+	{
+		num.numerator *= -1;
+		num.denominator *= -1;
+	}
+
+	for(int i = 2, max = float_abs(num.denominator) > float_abs(num.numerator) ? float_abs(num.denominator) : float_abs(num.numerator); i <= max; i++)
+	{
+		if(float_to_int(num.denominator)%i == 0 && float_to_int(num.numerator)%i == 0)
+		{
+			num.numerator /= i;
+			num.denominator /= i;
+			i = 1;
+			max = float_abs(num.denominator) > float_abs(num.numerator) ? float_abs(num.denominator) : float_abs(num.numerator);
+		}
+	}
+
+    return num;
 }
 
 
@@ -62,6 +76,9 @@ num_t rest_num(num_t num1, num_t num2)
 
 num_t divide_num(num_t num1, num_t num2) 
 {
+        num1 = simplify_num(num1);
+        num2 = simplify_num(num2);
+
         num1.numerator *= num2.denominator;
         num1.denominator *= num2.numerator;
         return num1;
@@ -69,6 +86,9 @@ num_t divide_num(num_t num1, num_t num2)
 
 num_t multiply_num(num_t num1, num_t num2)
 {
+    num1 = simplify_num(num1);
+    num2 = simplify_num(num2);
+
 	num1.numerator *= num2.numerator;
 	num1.denominator *= num2.denominator;
 	return num1;
