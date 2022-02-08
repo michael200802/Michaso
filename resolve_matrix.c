@@ -1,16 +1,16 @@
 #include "resolve_matrix.h"
 
-size_t get_textlen_in_edit(short_text_t * text)
+size_t get_strlen_in_edit(const char * str)
 {
 	size_t len = 0;
 
-	for(size_t i = 0; text->str[i] != '\0'; i++)
+	for(size_t i = 0; str[i] != '\0'; i++)
 	{
-		if(text->str[i] == ' ' || text->str[i] == '/' || text->str[i] == '.' || text->str[i] == '-' || text->str[i] == ')' || text->str[i] == '(' || text->str[i] == 't')
+		if(str[i] == ' ' || str[i] == '/' || str[i] == '.' || str[i] == '-' || str[i] == ')' || str[i] == '(' || str[i] == 't')
 		{
 			len++;
 		}
-		else if(text->str[i] == 'M')
+		else if(str[i] == 'M')
 		{
 			len+=3;
 		}
@@ -23,7 +23,7 @@ size_t get_textlen_in_edit(short_text_t * text)
 	return len;
 }
 
-text_t print_matrix_in_edit(const char * name, const char * space, num_t * denominator, matrix_t matrix)
+void print_matrix_in_edit(text_t * edit, const char * name, const char * space, num_t * denominator, matrix_t matrix)
 {
 	short_text_t text_matrix_nums[NXN_MAXN*2-1][NXN_MAXN+1] = {0};
 	size_t max_line_len = 0, line_len;
@@ -35,7 +35,7 @@ text_t print_matrix_in_edit(const char * name, const char * space, num_t * denom
 			{
 					matrix.matrix[i][j] = simplify_num(matrix.matrix[i][j]);
 					print_num_in_text(text_matrix_nums[i][j],matrix.matrix[i][j]);
-					num_len = get_textlen_in_edit(&text_matrix_nums[i][j]);
+					num_len = get_strlen_in_edit(text_matrix_nums[i][j].str);
 					if(max_num_len < num_len)
 					{
 							max_num_len = num_len;
@@ -48,81 +48,78 @@ text_t print_matrix_in_edit(const char * name, const char * space, num_t * denom
 			}
 	}
 
-	text_t result = {};//1
-    size_t dif;
+    	size_t dif;
 
 	for(size_t i = 0; i < matrix.nrows; i++)
 	{
 			if(i == matrix.nrows/2)
 			{
-					cat_str_in_text(result,name);
+					cat_str_in_text((*edit),name);
 			}
 			else
 			{
-					cat_str_in_text(result,space);
+					cat_str_in_text((*edit),space);
 			}
 
-			add_ch_in_text(result,'|');
+			add_ch_in_text((*edit),'|');
 			for(size_t j = 0; j < matrix.ncolumns; j++)
 			{
-					add_ch_in_text(result,' ');
+					add_ch_in_text((*edit),' ');
 
-					num_len = get_textlen_in_edit(&text_matrix_nums[i][j]);
+					num_len = get_strlen_in_edit(text_matrix_nums[i][j].str);
 					dif = max_num_len - num_len;
 
 					for(size_t k = 0, max = (dif == 1? 1 : dif/2 + dif%2); k < max; k++)
 					{
-						add_ch_in_text(result,' ');
+						add_ch_in_text((*edit),' ');
 					}
 
-					cat_text_in_text(result,text_matrix_nums[i][j]);
+					cat_text_in_text((*edit),text_matrix_nums[i][j]);
 
 					for(size_t k = 0, max = dif/2; k < max; k++)
 					{
-						add_ch_in_text(result,' ');
+						add_ch_in_text((*edit),' ');
 					}
 
-					add_ch_in_text(result,' ');
+					add_ch_in_text((*edit),' ');
 			}
 
-			add_ch_in_text(result,'|');
+			add_ch_in_text((*edit),'|');
 
-			add_ch_in_text(result,'\n');
+			add_ch_in_text((*edit),'\n');
 	}
 
 	if(denominator != NULL)
 	{
-		cat_str_in_text(result,space);
+		cat_str_in_text((*edit),space);
 
 	        line_len = 2+matrix.ncolumns*(max_num_len+2);
 		for(size_t i = 0; i < line_len; i++)
 	        {
-	                add_ch_in_text(result,'-');
+	                add_ch_in_text((*edit),'-');
 	        }
-		add_ch_in_text(result,'\n');
+		add_ch_in_text((*edit),'\n');
 
-		cat_str_in_text(result,space);
+		cat_str_in_text((*edit),space);
 
 		short_text_t text_denominator = {0};
 		print_num_in_text(text_denominator,(*denominator));
 
-                num_len = get_textlen_in_edit(&text_denominator);
+                num_len = get_strlen_in_edit(text_denominator.str);
                 dif = line_len - num_len;
 
 		for(size_t i = 0, max = dif/2 + dif%2 ; i < max; i++)
 		{
-			add_ch_in_text(result,' ');
+			add_ch_in_text((*edit),' ');
 		}
 
-		cat_text_in_text(result,text_denominator);
+		cat_text_in_text((*edit),text_denominator);
 
 		for(size_t i = 0, max = dif/2; i < max; i++)
 		{
-			add_ch_in_text(result,' ');
+			add_ch_in_text((*edit),' ');
 		}
 	}
-
-    return result;
 }
 
 void show_numarray(num_t * array, size_t len)
@@ -209,9 +206,9 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 		short_text_t buffer = {};
 
 		print_num_in_text(buffer,(*denominator));
-		denominator_len = get_textlen_in_edit(&buffer);
+		denominator_len = get_strlen_in_edit(buffer.str);
 		buffer = create_short_text(name);
-		name_len = get_textlen_in_edit(&buffer);
+		name_len = get_strlen_in_edit(buffer.str);
 	}
 
 	for(size_t k = 0; k < 2; k++)
@@ -220,7 +217,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 
 		if(denominator != NULL)
 		{
-			line_len = get_textlen_in_edit(&text_to_short(*process));
+			line_len = get_strlen_in_edit(process->str);
 		}
 
 		for(size_t m = 0, i = 0; m < 2; m++)
@@ -274,7 +271,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 		}
 		if(denominator != NULL)
 		{
-			line_len = get_textlen_in_edit(&text_to_short(*process))-line_len;
+			line_len = get_strlen_in_edit(process->str)-line_len;
 			for(size_t i = 0; i < name_len; i++)
 			{
 				add_ch_in_text((*process),' ');
@@ -312,7 +309,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 
 		if(denominator != NULL)
 		{
-			line_len = get_textlen_in_edit(&text_to_short(*process));
+			line_len = get_strlen_in_edit(process->str);
 		}
 
 		for(size_t i = 0; i < 2; i++)
@@ -325,7 +322,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 
 		if(denominator != NULL)
 		{
-			line_len = get_textlen_in_edit(&text_to_short(*process))-line_len;
+			line_len = get_strlen_in_edit(process->str)-line_len;
 			for(size_t i = 0; i < name_len; i++)
 			{
 				add_ch_in_text((*process),' ');
@@ -431,7 +428,6 @@ text_t matrix_to_system(matrix_t matrix)
 text_t cramer(matrix_t matrix)
 {
 	text_t text = {};//1
-	text_t aux_text = {};//2
 	num_t sys_det;
 	num_t solution[NXN_MAXN];
 
@@ -453,7 +449,7 @@ text_t cramer(matrix_t matrix)
 		matrix.nrows = 2;
 	}
 
-	text = print_matrix_in_edit("det Ms = ","               ",NULL,matrix);
+	print_matrix_in_edit(&text,"det Ms = ","               ",NULL,matrix);
 
 	add_ch_in_text(text,'\n');
 	sys_det = get_det("det Ms = ",NULL,matrix,&text);
@@ -474,14 +470,9 @@ text_t cramer(matrix_t matrix)
 			matrix.matrix[j][i] = matrix.matrix[j][matrix.ncolumns];
 			matrix.matrix[j][matrix.ncolumns] = aux;
 		}
-		
 
-		aux_text = print_matrix_in_edit(name,"      ",&sys_det,matrix);//2
+		print_matrix_in_edit(&text,name,"      ",&sys_det,matrix);
 		printf("text.len: %zu, text.allocated_bytes: %zu\n",text.len,text.allocated_bytes);
-		printf("aux_text.len: %zu, aux_text.allocated_bytes: %zu\n",aux_text.len,aux_text.allocated_bytes);
-
-		cat_text_in_text(text,aux_text);
-		clear_text(aux_text);//2
 
 		cat_str_in_text(text,"\n\n");
 		solution[i] = simplify_num(divide_num(get_det(name,&sys_det,matrix,&text),sys_det));

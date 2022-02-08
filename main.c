@@ -497,7 +497,7 @@ int WINAPI WinMain(HINSTANCE hCurInstance, HINSTANCE hPrevInstance, LPSTR lpszCm
 		.cbWndExtra = 0,
 		.hInstance = hCurInstance,
 		.hIcon = LoadIcon(NULL,IDI_APPLICATION),
-		.hCursor = LoadIcon(NULL,IDC_ARROW),
+		.hCursor = LoadCursor(NULL,IDC_ARROW),
 		.hbrBackground = (HBRUSH)GetStockObject(GRAY_BRUSH),
 		.lpszMenuName = NULL,
 		.lpszClassName = "MAINWND",

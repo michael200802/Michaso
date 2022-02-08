@@ -6,7 +6,7 @@
 #ifndef TEXT_H
 #define TEXT_H
 
-#define TEXT_LEN 500
+#define TEXT_LEN 6000
 #define TEXT_MINLEN 50
 typedef struct
 {
@@ -31,18 +31,23 @@ typedef struct
 #define is_text_short(text)\
 	(sizeof(text._str) == sizeof(TEXT_MINLEN))
 
-#define allocate_mem(text,nbytes)																\
-	if(is_text_short(text) == false)															\
-	{																							\
-		if(text.str == NULL	|| text.allocated_bytes < (text.len+nbytes+1))						\
-		{																						\
-			text.allocated_bytes += TEXT_LEN*sizeof(char);										\
-			text.str = (char*)realloc(text.str,text.allocated_bytes);							\
-		}																						\
-	}																							\
-	else																						\
-	{																							\
-		text.str = text._str;																	\
+#define allocate_mem(text,nbytes)							\
+	if(is_text_short(text) == false)						\
+	{										\
+		if(text.str == NULL)							\
+		{									\
+			text.allocated_bytes = TEXT_LEN*sizeof(char)+nbytes;		\
+			text.str = (char*)malloc(text.allocated_bytes);			\
+		}									\
+		else if(text.allocated_bytes < (text.len+nbytes+1))			\
+		{									\
+			text.allocated_bytes += TEXT_LEN*sizeof(char)+nbytes;		\
+			text.str = (char*)realloc(text.str,text.allocated_bytes);	\
+		}									\
+	}										\
+	else										\
+	{										\
+		text.str = text._str;							\
 	}
 
 text_t create_text(const char * str);
@@ -65,8 +70,10 @@ short_text_t create_short_text(const char * str);
 	text.len = 0;				\
 	text.allocated_bytes = 0;
 
+/*
 #define text_to_short(text)\
 	(*((short_text_t*)&(text)))
+*/
 
 #define get_text_end(text)\
 	(text.str+text.len)
