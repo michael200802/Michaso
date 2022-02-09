@@ -1,7 +1,7 @@
 #Change to your selected compiler (this compiler only works for me, putting gcc instead would work just fine)
 
-#compiler=x86_64-w64-mingw32-gcc
-compiler=gcc
+compiler=x86_64-w64-mingw32-gcc
+#compiler=gcc
 
 main.exe: main.o text.o resolve_matrix.o num.o
 	$(compiler) $? -mwindows -lpthread -pthread -o $@

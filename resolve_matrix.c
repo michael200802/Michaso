@@ -84,9 +84,7 @@ void print_matrix_in_edit(text_t * edit, const char * name, const char * space, 
 					add_ch_in_text((*edit),' ');
 			}
 
-			add_ch_in_text((*edit),'|');
-
-			add_ch_in_text((*edit),'\n');
+			cat_str_in_text((*edit),"|\r\n");
 	}
 
 	if(denominator != NULL)
@@ -98,7 +96,7 @@ void print_matrix_in_edit(text_t * edit, const char * name, const char * space, 
 	        {
 	                add_ch_in_text((*edit),'-');
 	        }
-		add_ch_in_text((*edit),'\n');
+		cat_str_in_text((*edit),"\r\n");
 
 		cat_str_in_text((*edit),space);
 
@@ -266,7 +264,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 			}
 			else
 			{
-				add_ch_in_text((*process),'\n');
+				cat_str_in_text((*process),"\r\n");
 			}
 		}
 		if(denominator != NULL)
@@ -281,7 +279,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 				add_ch_in_text((*process),'-');
 			}
 
-			add_ch_in_text((*process),'\n');
+			cat_str_in_text((*process),"\r\n");
 
 			for(size_t i = 0; i < name_len; i++)
 			{
@@ -298,9 +296,9 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 			{
 				add_ch_in_text((*process),' ');
 			}
-			add_ch_in_text((*process),'\n');
+			cat_str_in_text((*process),"\r\n");
 		}
-		add_ch_in_text((*process),'\n');
+		cat_str_in_text((*process),"\r\n");
 	}
 
 	if(matrix.is_3x3)
@@ -314,10 +312,15 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 
 		for(size_t i = 0; i < 2; i++)
 		{
-			add_ch_in_text((*process),'{');
 			print_num_in_text((*process),nums_sum[i]);
-			add_ch_in_text((*process),'}');
-			add_ch_in_text((*process),(i != 1? '-' : '\n'));
+			if(i != 1)
+			{
+				cat_str_in_text((*process)," - ");
+			}
+			else
+			{
+				cat_str_in_text((*process),"\r\n");
+			}
 		}
 
 		if(denominator != NULL)
@@ -331,7 +334,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 			{
 				add_ch_in_text((*process),'-');
 			}
-			add_ch_in_text((*process),'\n');
+			cat_str_in_text((*process),"\r\n"); 
 
 
 			for(size_t i = 0; i < name_len; i++)
@@ -349,9 +352,9 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 			{
 				add_ch_in_text((*process),' ');
 			}
-			add_ch_in_text((*process),'\n');
+			cat_str_in_text((*process),"\r\n"); 
 		}
-		add_ch_in_text((*process),'\n');
+		cat_str_in_text((*process),"\r\n"); 
 	}
 
 	cat_str_in_text((*process),name);
@@ -412,7 +415,7 @@ text_t matrix_to_system(matrix_t matrix)
 			}
 			else
 			{
-				add_ch_in_text(text,'\n');
+				cat_str_in_text(text,"\r\n");
 			}
 		}
 	}
@@ -451,13 +454,13 @@ text_t cramer(matrix_t matrix)
 
 	print_matrix_in_edit(&text,"det Ms = ","               ",NULL,matrix);
 
-	add_ch_in_text(text,'\n');
+	cat_str_in_text(text,"\r\n");
 	sys_det = get_det("det Ms = ",NULL,matrix,&text);
-	cat_str_in_text(text,"\n\n\n\n");
+	cat_str_in_text(text,"\r\n\r\n\r\n\r\n");
 
 	if(get_num(sys_det) == 0)
 	{
-		cat_str_in_text(text,"\nNo se puede resolver el sistema pues la determinante del sistema es cero.");
+		cat_str_in_text(text,"\r\nNo se puede resolver el sistema pues la determinante del sistema es cero.");
 		return text;
 	}
 
@@ -474,12 +477,11 @@ text_t cramer(matrix_t matrix)
 		print_matrix_in_edit(&text,name,"      ",&sys_det,matrix);
 		printf("text.len: %zu, text.allocated_bytes: %zu\n",text.len,text.allocated_bytes);
 
-		cat_str_in_text(text,"\n\n");
+		cat_str_in_text(text,"\r\n\r\n");
 		solution[i] = simplify_num(divide_num(get_det(name,&sys_det,matrix,&text),sys_det));
 		cat_str_in_text(text," = ");
 		print_num_in_text(text,solution[i]);
-		cat_str_in_text(text,"\n\n\n\n");
-
+		cat_str_in_text(text,"\r\n\r\n\r\n\r\n");
 		name[0]++;
 
 		for(size_t j = 0; j < matrix.nrows; j++)
@@ -490,7 +492,7 @@ text_t cramer(matrix_t matrix)
 		}
 	}
 
-	cat_str_in_text(text,"\nSolucion: (");
+	cat_str_in_text(text,"\r\nSolucion: (");
 	for(size_t i = 0; i < matrix.ncolumns; i++)
 	{
 		print_num_in_text(text,solution[i]);
@@ -499,7 +501,7 @@ text_t cramer(matrix_t matrix)
 			cat_str_in_text(text," ; ");
 		}
 	}
-	cat_str_in_text(text,")\n");
+	cat_str_in_text(text,")\r\n");
 
 	return text;//1
 }

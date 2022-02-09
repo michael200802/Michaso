@@ -16,9 +16,9 @@ typedef struct
 
 #define INITIALIZER_NUM {.numerator = 0, .denominator = 1}
 
-#define set_num(num,_numerator,_denominator,_state)\
-	num.numerator = _numerator;									\
-	num.denominator = _denominator;								\
+#define set_num(num,_numerator,_denominator,_state)	\
+	num.numerator = _numerator;						\
+	num.denominator = _denominator;					\
 	num.state = _state;
 
 #define get_num(num)\
