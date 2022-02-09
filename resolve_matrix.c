@@ -140,7 +140,7 @@ num_t get_det(const char * name, num_t * denominator, matrix_t matrix, text_t * 
 	num_t nums_product[NXN_MAXN*2];
 	for(size_t i = 0; i < NXN_MAXN*2; i++)
 	{
-		set_num(nums_product[i],1,1);
+		set_num(nums_product[i],1,1,NUM_STATE_INT);
 	}
 	num_t nums_sum[2] = {INITIALIZER_NUM,INITIALIZER_NUM};
 	num_t det = INITIALIZER_NUM;
