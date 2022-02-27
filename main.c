@@ -73,9 +73,7 @@ text_t get_process(matrix_t matrix, HWND CB_method)
 	else if(strcmp(method_str,METHOD_G_J) == 0)
 	{
 		puts(METHOD_G_J);
-		text_t process_gauss = gauss(matrix), process_jordan = jordan(matrix);
-		cat_text_in_text(process_gauss,process_jordan);
-		return process_gauss;
+		return gauss_jordan(matrix);
 	}
 	text_t defprocess = {};
 	cat_str_in_text(defprocess,"No se ha seleccionado ningun metodo.");
@@ -99,6 +97,7 @@ struct
 	pthread_mutex_lock(&show_thread_args.matrix_has_changed_mutex);		\
 	show_thread_args.matrix_has_changed = true;				\
 	pthread_mutex_unlock(&show_thread_args.matrix_has_changed_mutex);	\
+	puts("signal was sent.");\
 	pthread_cond_signal(&show_thread_args.sleep_condv);
 
 void * show_thread_routine(void * arg)
@@ -108,14 +107,12 @@ void * show_thread_routine(void * arg)
 		pthread_mutex_lock(&show_thread_args.sleep_mutex);//sleep mutex
 
 		pthread_mutex_lock(&show_thread_args.matrix_has_changed_mutex);//matrix_has_changed mutex
-		bool is_matrix_changed = show_thread_args.matrix_has_changed;//is ready???
+		if(show_thread_args.matrix_has_changed == false)//Is ready?
+		{
+			pthread_cond_wait(&show_thread_args.sleep_condv,&show_thread_args.matrix_has_changed_mutex);
+		}
 		show_thread_args.matrix_has_changed = false;
 		pthread_mutex_unlock(&show_thread_args.matrix_has_changed_mutex);//matrix_has_changed mutex
-
-		if(is_matrix_changed == false)
-		{
-			pthread_cond_wait(&show_thread_args.sleep_condv,&show_thread_args.sleep_mutex);
-		}
 
 		static int con = 0;
 		printf("%d: edit messages\n",con++);
@@ -142,6 +139,8 @@ void * show_thread_routine(void * arg)
 			cat_str_in_text(text_process,"Ingrese los datos en la matriz.");//2
 		}
 
+		puts("Processing finished");
+
 		Edit_SetText(show_thread_args.edit_equation_system,text_equation_system.str);
 
 		Edit_SetText(show_thread_args.edit_process,text_process.str);
@@ -150,6 +149,10 @@ void * show_thread_routine(void * arg)
 
 		destroy_text(text_equation_system);//1
 		destroy_text(text_process);//2
+
+		puts("process has been shown.");
+
+		Sleep(100);
 	}
 	return NULL;
 }

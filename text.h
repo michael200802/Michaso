@@ -6,7 +6,7 @@
 #ifndef TEXT_H
 #define TEXT_H
 
-#define TEXT_LEN 6000
+#define TEXT_LEN 1000
 #define TEXT_MINLEN 50
 typedef struct
 {
@@ -28,8 +28,7 @@ typedef struct
 
 #include "resolve_matrix.h"
 
-#define is_text_short(text)\
-	(sizeof(text._str) == sizeof(TEXT_MINLEN))
+#define is_text_short(text) _Generic(text, short_text_t: true, text_t: false)\
 
 #define allocate_mem(text,nbytes)																\
 	if(is_text_short(text) == false)															\
@@ -44,6 +43,7 @@ typedef struct
 	{																							\
 		text.str = text._str;																	\
 	}
+
 
 text_t create_text(const char * str);
 
@@ -64,11 +64,6 @@ short_text_t create_short_text(const char * str);
 	}							\
 	text.len = 0;				\
 	text.allocated_bytes = 0;
-
-/*
-#define text_to_short(text)\
-	(*((short_text_t*)&(text)))
-*/
 
 #define get_text_end(text)\
 	(text.str+text.len)
@@ -99,13 +94,12 @@ short_text_t create_short_text(const char * str);
 	*get_text_end(text) = '\0';
 
 #define cat_str_in_text(text,str)			\
-	allocate_mem(text,strlen(str));			\
+	allocate_mem(text, strlen(str));		\
 	strcpy(get_text_end(text),str);			\
-	do										\
+	while(*get_text_end(text) != '\0')		\
 	{										\
 		text.len++;							\
-	}while(*get_text_end(text) != '\0');
-
+	}
 
 #define cat_text_in_text(dest,src)				\
 	allocate_mem(dest,src.len);					\

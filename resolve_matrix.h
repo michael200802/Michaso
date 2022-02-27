@@ -8,9 +8,12 @@
 
 #define NXN_MAXN 3
 
+#define MATRIX_MAXNROWS NXN_MAXN*2-1
+#define MATRIX_MAXNCOLUMNS NXN_MAXN+1
+
 typedef struct
 {
-        num_t matrix[NXN_MAXN*2-1][NXN_MAXN+1];
+        num_t matrix[MATRIX_MAXNROWS][MATRIX_MAXNCOLUMNS];
         size_t nrows;
         size_t ncolumns;
         bool is_3x3;
@@ -24,6 +27,6 @@ text_t cramer(matrix_t matrix);
 
 text_t gauss(matrix_t matrix);
 
-text_t jordan(matrix_t matrix);
+text_t gauss_jordan(matrix_t matrix);
 
 #endif

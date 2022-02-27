@@ -3,6 +3,8 @@
 compiler=x86_64-w64-mingw32-gcc
 #compiler=gcc
 
+all: main.exe
+
 main.exe: main.o text.o resolve_matrix.o num.o
 	$(compiler) $? -mwindows -lpthread -pthread -o $@
 
