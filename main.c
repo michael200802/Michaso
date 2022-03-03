@@ -4,8 +4,9 @@
 #include <ctype.h>
 #include <pthread.h>
 #include "num.h"
+#include "matrix.h"
 #include "text.h"
-#include "resolve_matrix.h"
+#include "show_process_in_edit.h"
 #include <limits.h>
 
 #define NUMBER_MAX_LEN 8
@@ -33,6 +34,8 @@
 #define METHOD_G "Metodo de Gauss. "
 #define METHOD_G_J "Metodo de Gauss-Jordan."
 
+typedef enum method {CRAMER = 1,GAUSS = 2, JORDAN = 4} method_t;
+
 BOOL get_matrix(HWND (*matrix_edits)[NXN_MAXN+1], BOOL is_3x3, matrix_t * matrix)
 {
 	matrix->is_3x3 = is_3x3;
@@ -55,29 +58,84 @@ BOOL get_matrix(HWND (*matrix_edits)[NXN_MAXN+1], BOOL is_3x3, matrix_t * matrix
 	return TRUE;
 }
 
-text_t get_process(matrix_t matrix, HWND CB_method)
+text_t matrix_to_system(matrix_t matrix)
 {
-	char method_str[30];
-	ComboBox_GetText(CB_method,method_str,30);
+	if(matrix.is_3x3)
+	{
+		matrix.nrows = 3;
+		matrix.ncolumns = 4;
+	}
 
-	if(strcmp(method_str,METHOD_CRAMER) == 0)
+	text_t text = {};
+	for(size_t i = 0; i < matrix.nrows; i++)
+	{
+		for(size_t j = 0; j < matrix.ncolumns; j++)
+		{
+			matrix.matrix[i][j] = simplify_num(matrix.matrix[i][j]);
+
+			num_t num;
+			if(j != 0 && j != matrix.ncolumns-1)
+			{
+				if(get_num(matrix.matrix[i][j]) < 0)
+				{
+					cat_str_in_text(text, "- ");
+				}
+				else
+				{
+					cat_str_in_text(text, "+ ");
+				}
+				num = abs_num(matrix.matrix[i][j]);
+			}
+			else
+			{
+				num = matrix.matrix[i][j];
+			}
+			print_num_in_text(text,num);
+			if(j != matrix.ncolumns-1)
+			{
+				add_ch_in_text(text,'x'+j);
+				if(j == matrix.ncolumns-2)
+				{
+					cat_str_in_text(text," = ");
+				}
+				else
+				{
+					add_ch_in_text(text,' ');
+				}
+			}
+			else
+			{
+				cat_str_in_text(text,"\r\n");
+			}
+		}
+	}
+	return text;
+}
+
+void show_process(hedit_t hedit, matrix_t matrix, HWND CB_method)
+{
+	char method_name[30];
+	ComboBox_GetText(CB_method, method_name, sizeof(method_name));
+
+	if(strcmp(method_name,METHOD_CRAMER) == 0)
 	{
 		puts(METHOD_CRAMER);
-		return cramer(matrix);
+		show_process_cramer(hedit, matrix);
 	}
-	else if(strcmp(method_str,METHOD_G) == 0)
+	else if(strcmp(method_name,METHOD_G) == 0)
 	{
 		puts(METHOD_G);
-		return gauss(matrix);
+		show_process_gauss(hedit, matrix);
 	}
-	else if(strcmp(method_str,METHOD_G_J) == 0)
+	else if(strcmp(method_name,METHOD_G_J) == 0)
 	{
 		puts(METHOD_G_J);
-		return gauss_jordan(matrix);
+		show_process_gauss_jordan(hedit, matrix);
 	}
-	text_t defprocess = {};
-	cat_str_in_text(defprocess,"No se ha seleccionado ningun metodo.");
-	return defprocess;
+	else
+	{
+		Edit_SetText(hedit, "No se ha seleccionado ningun metodo.");
+	}
 }
 
 struct
@@ -126,8 +184,8 @@ void * show_thread_routine(void * arg)
 		{
 			puts("ready");
 
-			text_equation_system = matrix_to_system(matrix);//1
-			text_process = get_process(matrix,show_thread_args.combobox_method);//2
+			Edit_SetText(show_thread_args.edit_equation_system, matrix_to_system(matrix).str);
+			show_process(show_thread_args.edit_process, matrix, show_thread_args.combobox_method);
 
 			printf("Sistema de ecuaciones:\n%s",text_equation_system.str);
 		}
@@ -135,20 +193,13 @@ void * show_thread_routine(void * arg)
 		{
 			puts("non-ready");
 
-			cat_str_in_text(text_equation_system,"Ingrese los datos en la matriz.");//1
-			cat_str_in_text(text_process,"Ingrese los datos en la matriz.");//2
+			Edit_SetText(show_thread_args.edit_equation_system, "Ingrese los datos en la matriz.");
+			Edit_SetText(show_thread_args.edit_process, "Ingrese los datos en la matriz.");
 		}
 
 		puts("Processing finished");
 
-		Edit_SetText(show_thread_args.edit_equation_system,text_equation_system.str);
-
-		Edit_SetText(show_thread_args.edit_process,text_process.str);
-
 		pthread_mutex_unlock(&show_thread_args.sleep_mutex);//sleep mutex
-
-		destroy_text(text_equation_system);//1
-		destroy_text(text_process);//2
 
 		puts("process has been shown.");
 

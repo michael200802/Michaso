@@ -5,7 +5,7 @@ compiler=x86_64-w64-mingw32-gcc
 
 all: main.exe
 
-main.exe: main.o text.o resolve_matrix.o num.o
+main.exe: main.o text.o num.o show_process_in_edit.o
 	$(compiler) $? -mwindows -lpthread -pthread -o $@
 
 main.o: main.c
@@ -17,17 +17,8 @@ text.o: text.h text.c
 num.o: num.c num.h
 	$(compiler) -c num.c -o $@
 
-resolve_matrix.o: resolve_matrix.c resolve_matrix.h
-	$(compiler) -c resolve_matrix.c -o $@
-
-cramer.o: cramer.h cramer.c
-	$(compiler) -c cramer.c -o $@
-
-gauss.o: gauss.h gauss.h
-	$(compiler) -c gauss.c -o $@
-
-jordan.o: jordan.h jordan.c
-	$(compiler) -c jordan.c -o $@
+show_process_in_edit.o: show_process_in_edit.h show_process_in_edit.c
+	$(compiler) -c show_process_in_edit.c -o $@
 
 clean: *.o
 	rm $?
