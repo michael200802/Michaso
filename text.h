@@ -52,8 +52,18 @@ short_text_t create_short_text(const char * str);
 			print_in_text(text, "%"PRId64 "/" "%"PRId64, num.numerator, num.denominator);	\
 			break;																			\
 		case NUM_STATE_DECIMAL:																\
-			print_in_text(text,"%.2lf",get_num(num));										\
-			break;																			\
+			{																						\
+				integer_t modulus, digit1, digit2;													\
+																									\
+				modulus = num.numerator % num.denominator;											\
+				digit1 = (modulus*10)/num.denominator;												\
+																									\
+				modulus =  (modulus*10)%num.denominator;											\
+				digit2 = (modulus*10)/num.denominator;												\
+																									\
+				printf("%"PRId64".%"PRId64, num.numerator / num.denominator, digit1*10 + digit2);	\
+			}																						\
+			break;																					\
 	}
 
 #define add_ch_in_text(text,ch)	\

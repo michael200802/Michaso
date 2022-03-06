@@ -7,10 +7,13 @@
 #ifndef NUM_H
 #define NUM_H
 
+typedef int64_t integer_t;
+typedef uint64_t uinteger_t;
+
 typedef struct
 {
-	int64_t numerator;
-	int64_t denominator;
+	integer_t numerator;
+	integer_t denominator;
 	enum num_state{NUM_STATE_FRACTION,NUM_STATE_DECIMAL,NUM_STATE_INT} state;
 }num_t;
 
@@ -21,19 +24,14 @@ typedef struct
 	num.denominator = _denominator;					\
 	num.state = _state;
 
-#define get_num(num)\
-	( num.state == NUM_STATE_INT ? num.numerator : ((double)num.numerator/(double)num.denominator) )
+integer_t pow_integer(integer_t x, unsigned int y);
 
-int64_t pow_int64(int64_t x, unsigned int y);
+size_t get_length_integer(integer_t num);
 
-size_t get_length_int64(int64_t num);
-
-#define abs_int64(num)\
+#define abs_integer(num)\
 	(num < 0 ? num*-1 : num)
 
 bool is_num_greater(num_t num1, num_t num2);
-
-num_t float_to_num(double _num, char precision);
 
 num_t abs_num(num_t num);
 

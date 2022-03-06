@@ -4,9 +4,9 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-inline int64_t pow_int64(int64_t x, unsigned int y)
+inline integer_t pow_integer(integer_t x, unsigned int y)
 {
-	uint64_t result = 1;
+	uinteger_t result = 1;
 	bool is_negative = x < 0 ? true : false;
 
 	if(is_negative)
@@ -19,10 +19,10 @@ inline int64_t pow_int64(int64_t x, unsigned int y)
 		result *= x;
 	}
 
-	return ((int64_t)result) * (is_negative && y%2 == 0? -1 : 1);
+	return ((integer_t)result) * (is_negative && y%2 == 0? -1 : 1);
 }
 
-inline size_t get_length_int64(int64_t num)
+inline size_t get_length_integer(integer_t num)
 {
 	size_t len = 0;
 	do
@@ -54,8 +54,8 @@ inline bool is_num_greater(num_t num1, num_t num2)
 
 inline num_t abs_num(num_t num)
 {
-	num.denominator = abs_int64(num.denominator);
-	num.numerator = abs_int64(num.numerator);
+	num.denominator = abs_integer(num.denominator);
+	num.numerator = abs_integer(num.numerator);
 	return num;
 }
 
@@ -67,7 +67,7 @@ inline num_t simplify_num(num_t num)
 	{
 		num.denominator = 1;
 	}
-	else 
+	else
 	{
 		if(num.denominator < 0)
 		{
@@ -78,9 +78,9 @@ inline num_t simplify_num(num_t num)
 		is_negative = num.numerator < 0 ? true : false;
 		if(is_negative)
 		{
-			num.numerator = abs_int64(num.numerator);
+			num.numerator = abs_integer(num.numerator);
 		}
-		
+
 		if(num.denominator == num.numerator)
 		{
 			num.numerator = 1;
@@ -100,9 +100,9 @@ inline num_t simplify_num(num_t num)
 		}
 		return num;
 	}
-	
-	uint64_t max = num.denominator < num.numerator ? num.denominator :  num.numerator;
-	for(uint64_t i = 2; i <= max; i++)
+
+	uinteger_t max = num.denominator < num.numerator ? num.denominator :  num.numerator;
+	for(uinteger_t i = 2; i <= max; i++)
 	{
 		if(num.denominator%i == 0 && num.numerator%i == 0)
 		{
@@ -157,8 +157,22 @@ inline num_t rest_num(num_t num1, num_t num2)
 
 inline num_t divide_num(num_t num1, num_t num2)
 {
+	num_t aux;
+
 	num1 = simplify_num(num1);
 	num2 = simplify_num(num2);
+
+	aux.numerator = num1.numerator;
+	aux.denominator = num2.denominator;
+	aux = simplify_num(aux);
+	num1.numerator = aux.numerator;
+	num2.denominator = aux.denominator;
+
+	aux.numerator = num2.numerator;
+	aux.denominator = num1.denominator;
+	aux = simplify_num(aux);
+	num2.numerator = aux.numerator;
+	num1.denominator = aux.denominator;
 
 	num1.numerator *= num2.denominator;
 	num1.denominator *= num2.numerator;
@@ -244,7 +258,7 @@ num_t gcd_num(size_t nnums, ...)
 
 bool str_to_num(const char * str, num_t * num)
 {
-	int64_t pow10 = 1;
+	integer_t pow10 = 1;
 
 	if(sscanf(str,"%"SCNd64,&num->numerator) != 1)
 	{
@@ -262,7 +276,7 @@ bool str_to_num(const char * str, num_t * num)
 	}
 	if(*str == '.')
 	{
-		int64_t aux;
+		integer_t aux;
 
 		str++;
 		if(sscanf(str,"%"SCNd64,&aux) != 1)
@@ -270,7 +284,7 @@ bool str_to_num(const char * str, num_t * num)
 			return false;
 		}
 
-		pow10 = pow_int64(10,get_length_int64(aux));
+		pow10 = pow_integer(10,get_length_integer(aux));
 
 		num->numerator *= pow10;
 		num->numerator += aux;
@@ -309,7 +323,7 @@ bool str_to_num(const char * str, num_t * num)
 		}
 		if(*str == '.')
 		{
-			int64_t aux;
+			integer_t aux;
 
 			str++;
 			if(sscanf(str,"%"SCNd64,&aux) != 1)
@@ -317,7 +331,7 @@ bool str_to_num(const char * str, num_t * num)
 				return false;
 			}
 
-			pow10 = pow_int64(10,get_length_int64(aux));
+			pow10 = pow_integer(10,get_length_integer(aux));
 
 			num->denominator *= pow10;
 			num->denominator += aux;
@@ -352,8 +366,6 @@ bool str_to_num(const char * str, num_t * num)
 
 inline void printnum(num_t num)
 {
-	putchar(' ');
-
 	switch (num.state)
 	{
 		case NUM_STATE_INT:
@@ -363,12 +375,19 @@ inline void printnum(num_t num)
 			printf("%"PRId64 "/" "%"PRId64, num.numerator, num.denominator);
 			break;
 		case NUM_STATE_DECIMAL:
-			printf("%.2lf",get_num(num));
+			{
+				integer_t modulus, digit1, digit2;
+
+				modulus = num.numerator % num.denominator;
+				digit1 = (modulus*10)/num.denominator;
+
+				modulus =  (modulus*10)%num.denominator;
+				digit2 = (modulus*10)/num.denominator;
+
+				printf("%"PRId64".%"PRId64, num.numerator / num.denominator, digit1*10 + digit2);
+			}
 			break;
 	}
-
-	//printf("%.2f/%.2f",num.numerator,num.denominator);
-	putchar(' ');
 }
 
 /*

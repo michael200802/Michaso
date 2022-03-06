@@ -76,7 +76,7 @@ text_t matrix_to_system(matrix_t matrix)
 			num_t num;
 			if(j != 0 && j != matrix.ncolumns-1)
 			{
-				if(get_num(matrix.matrix[i][j]) < 0)
+				if(matrix.matrix[i][j].numerator < 0)
 				{
 					cat_str_in_text(text, "- ");
 				}

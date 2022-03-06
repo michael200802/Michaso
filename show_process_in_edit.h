@@ -16,7 +16,7 @@ void show_process_cramer(hedit_t edit, matrix_t matrix);
 //cramer
 
 //gauss
-void show_process_gauss(hedit_t edit, matrix_t matrix);
+matrix_t * show_process_gauss(hedit_t edit, matrix_t matrix);
 //gauss
 
 //gauss-jordan
