@@ -510,9 +510,8 @@ int WINAPI WinMain(HINSTANCE hCurInstance, HINSTANCE hPrevInstance, LPSTR lpszCm
 		return -1;
 	}
 
-	HWND hWnd = CreateWindowEx
+	HWND hWnd = CreateWindow
 	(
-		WS_EX_OVERLAPPEDWINDOW,
 		"MAINWND",
 		"Michaso",
 		WS_BORDER|WS_VISIBLE|WS_OVERLAPPEDWINDOW|WS_MAXIMIZE,

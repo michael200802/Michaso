@@ -1,6 +1,6 @@
 #Change to your selected compiler (this compiler only works for me, putting gcc instead would work just fine)
 
-compiler=x86_64-w64-mingw32-gcc
+compiler=x86_64-w64-mingw32-gcc -O3
 #compiler=gcc
 
 all: main.exe

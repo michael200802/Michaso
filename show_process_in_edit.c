@@ -946,6 +946,16 @@ void solve_sys(hedit_t edit, matrix_t sys)
 		matrix_to_system(sys,&buffer);
 		cat_str_in_text(buffer,"\r\n");
 	}
+	cat_str_in_text(buffer,"Solucion: (");
+	for(size_t i = 0, maxi = sys.ncolumns-1; i < maxi; i++)
+	{
+		print_num_in_text(buffer,solutions[i]);
+		if(i+1 != maxi)
+		{
+			cat_str_in_text(buffer," ; ");
+		}
+	}
+	cat_str_in_text(buffer,")\r\n");
 	cat_text_in_edit(edit,buffer);
 }
 
@@ -1179,7 +1189,6 @@ void show_process_gauss_jordan(hedit_t edit, matrix_t matrix)
 	matrix = *jordan_matrix;
 
 	cat_str_in_text(buffer,"\r\n");
-
 	get_print_matrix_args(jordan_matrix,&printm_args);
 	print_matrix(buffer,printm_args,
 		{
@@ -1199,9 +1208,12 @@ void show_process_gauss_jordan(hedit_t edit, matrix_t matrix)
 			add_ch_in_text(buffer,' ');
 		},
 		{
-			add_ch_in_text(buffer,'|');
+			cat_str_in_text(buffer,"|\r\n");
 		}
 		);
+	cat_str_in_text(buffer,"\r\n");
+	
+	cat_text_in_edit(edit,buffer);
 
 	if(matrix.is_3x3)
 	{
