@@ -5,11 +5,14 @@ compiler=x86_64-w64-mingw32-gcc
 
 all: main.exe
 
-main.exe: main.o text.o num.o show_process_in_edit.o
+main.exe: main.o text.o num.o show_process_in_edit.o matrix.o
 	$(compiler) $? -mwindows -lpthread -pthread -o $@
 
 main.o: main.c
 	$(compiler) -c $? -o $@
+
+matrix.o: matrix.c matrix.h
+	$(compiler) -c matrix.c -o $@
 
 text.o: text.h text.c
 	$(compiler) -c text.c -o $@

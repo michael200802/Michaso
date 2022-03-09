@@ -63,6 +63,8 @@ void get_print_matrix_args(const matrix_t * matrix, print_matrix_args * args)
 		{
 			args->printed_nums[cur_row][cur_col] = &args->_printed_nums[cur_row][cur_col];
 
+			init_text((*args->printed_nums[cur_row][cur_col]));
+
 			print_num_in_text((*args->printed_nums[cur_row][cur_col]),matrix->matrix[cur_row][cur_col]);
 
 			args->nums_len[cur_row][cur_col] = get_strlen_in_edit(args->printed_nums[cur_row][cur_col]->str);
@@ -745,7 +747,7 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 	cat_str_in_text(text,"\r\nSolucion: (");
 	for(size_t i = 0; i < matrix.ncolumns; i++)
 	{
-		//print_num_in_text(text,solution[i]);
+		print_num_in_text(text,solution[i]);
 		if(i+1 != matrix.ncolumns)
 		{
 			cat_str_in_text(text," ; ");
@@ -759,77 +761,6 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 
 //GAUSS-JORDAN------------------------------------
 
-//print matrix in gauss/gauss-jordan
-void print_matrix_in_edit_gauss_jordan(hedit_t hedit, const char * name, const char * space, const matrix_t * matrix)
-{
-    text_t buffer;
-	short_text_t text_matrix_nums[MATRIX_MAXNROWS][MATRIX_MAXNCOLUMNS] = {};
-	size_t matrix_nums_len[MATRIX_MAXNROWS][MATRIX_MAXNCOLUMNS];
-	size_t matrix_nums_col_max_num[MATRIX_MAXNCOLUMNS];
-	size_t max_num_len = 0, cur_num_len;
-	num_t cur_num;
-	size_t len_dif;
-
-    //get "length in edit" of each number stored in matrix
-    //also, it stores each number as s str in text_matrix_num
-	for(size_t cur_row = 0; cur_row < matrix->nrows; cur_row++)
-	{
-		for(size_t cur_col = 0; cur_col < matrix->ncolumns; cur_col++)
-		{
-			cur_num = matrix->matrix[cur_row][cur_col];
-
-			cur_num = simplify_num(cur_num);
-			print_num_in_text(text_matrix_nums[cur_row][cur_col], cur_num);
-			matrix_nums_len[cur_row][cur_col] = get_strlen_in_edit(text_matrix_nums[cur_row][cur_col].str);
-		}
-	}
-
-    //get the "maxlen in edit number" of each column
-	for(size_t cur_col = 0; cur_col < matrix->ncolumns; cur_col++)
-	{
-		max_num_len = 0;
-		for(size_t cur_row = 0; cur_row < matrix->nrows; cur_row++)
-		{
-			cur_num_len = matrix_nums_len[cur_row][cur_col];
-
-			if(max_num_len < cur_num_len)
-			{
-				max_num_len = cur_num_len;
-			}
-		}
-		matrix_nums_col_max_num[cur_col] = max_num_len;
-	}
-
-    //prints the matrix
-	for (size_t cur_row = 0; cur_row < matrix->nrows; cur_row++)
-	{
-        init_text(buffer);
-
-		add_ch_in_text(buffer,'|');
-		for(size_t cur_col = 0; cur_col < matrix->ncolumns; cur_col++)
-		{
-			if(cur_col == matrix->ncolumns-1)
-			{
-				add_ch_in_text(buffer,'|');
-			}
-
-			cur_num_len = matrix_nums_len[cur_row][cur_col];
-
-			len_dif = matrix_nums_col_max_num[cur_col] - cur_num_len;
-
-            add_nch_in_text(buffer, len_dif/2 + len_dif%2, ' ');
-
-			cat_text_in_text(buffer, text_matrix_nums[cur_row][cur_col]);
-
-            add_nch_in_text(buffer, len_dif/2, ' ');
-		}
-		cat_str_in_text(buffer,"|\r\n");
-
-        cat_text_in_edit(hedit, buffer);
-	}
-}
-//print matrix in gauss/gauss-jordan
-
 static inline void get_common_product(num_t num1, num_t num2, num_t * prod1, num_t * prod2)
 {
 	num_t quotient = divide_num(num1, num2);
@@ -839,67 +770,393 @@ static inline void get_common_product(num_t num1, num_t num2, num_t * prod1, num
 	*prod2 = simplify_num(*prod2);
 }
 
-static inline bool make_it_zero(hedit_t edit, matrix_t * matrix, size_t row, size_t col)
+typedef enum {SUCCESS,FAILURE,ALREADY_0} make_it_zero_return;
+static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, size_t row, size_t col)
 {
 	size_t chosen_row;//chosen row for the rest
 	num_t prod1, prod2;//numbers that will be used to multiply the rows
+	short_text_t text_prod1 = {}, text_prod2 = {};//prod1 and prod2 in text
+	size_t prod1_len_in_edit, prod2_len_in_edit, prods_col_len_in_edit;//lens of prod1 and prod2
+	short_text_t text_rest = {};//text that will store "F1*x-F2*y"
+	size_t text_rest_len_in_edit;//text_rest len in edit
 	matrix_t rest;//the matrix that will store the rest between rows
-
+	print_matrix_args printm_args;//print rest
+	text_t buffer = {};
 
 	if(matrix->matrix[row][col].numerator == 0)
 	{
-		return true;
+		return ALREADY_0;
 	}
 
 	chosen_row = row;
-	for(size_t cur_row = 0; cur_row < matrix->nrows; cur_row++)
+	if(matrix->is_3x3)
 	{
-		if(matrix->matrix[cur_row][col].numerator != 0 && row != cur_row)
+		for(char cur_row = matrix->nrows-1; cur_row != -1; cur_row--)
 		{
-			chosen_row = cur_row;
+			if(matrix->matrix[cur_row][col].numerator != 0 && row != cur_row)
+			{
+				chosen_row = cur_row;
+				break;
+			}
+		}
+	}
+	else
+	{
+		switch (row)
+		{
+		case 0:
+			if(matrix->matrix[1][col].numerator != 0)
+			{
+				chosen_row = 1;
+			}
+			break;
+		case 1:
+			if(matrix->matrix[0][col].numerator != 0)
+			{
+				chosen_row = 0;
+			}
 			break;
 		}
 	}
 	if(chosen_row == row)
 	{
 		cat_str_in_edit(edit, "Sistema incompatible.");
-		return false;
+		return FAILURE;
 	}
 
 	get_common_product(matrix->matrix[row][col],matrix->matrix[chosen_row][col],&prod1,&prod2);
+	prod2.numerator *= -1;
 
-	rest.nrows = 2;
+	print_in_text(text_prod1,"F%zux",row+1);
+	print_num_in_text(text_prod1,prod1);
+
+	print_in_text(text_prod2,"F%zux",chosen_row+1);
+	print_num_in_text(text_prod2,prod2);
+
+	cat_text_in_text(text_rest,text_prod1);
+	cat_str_in_text(text_rest," + ");
+	cat_text_in_text(text_rest,text_prod2);
+
+	prod1_len_in_edit = get_strlen_in_edit(text_prod1.str);
+	prod2_len_in_edit = get_strlen_in_edit(text_prod2.str);
+	text_rest_len_in_edit = get_strlen_in_edit(text_rest.str);
+
+	prods_col_len_in_edit = text_rest_len_in_edit+2;
+
+	rest.nrows = 3;
 	rest.ncolumns = matrix->ncolumns;
+	rest.is_3x3 = true;
 	for(size_t cur_col = 0; cur_col < rest.ncolumns; cur_col++)
 	{
-		rest.matrix[0][cur_col] = matrix->matrix[row][cur_col];
-		rest.matrix[1][cur_col] = matrix->matrix[chosen_row][cur_col];
+		rest.matrix[0][cur_col] = multiply_num(matrix->matrix[row][cur_col],prod1);
+		rest.matrix[1][cur_col] = multiply_num(matrix->matrix[chosen_row][cur_col],prod2);
+		rest.matrix[2][cur_col] = sum_num(rest.matrix[0][cur_col],rest.matrix[1][cur_col]);
 	}
 
-	return true;
+	get_print_matrix_args(&rest,&printm_args);
+
+	print_matrix(buffer, printm_args,
+		{
+			switch (cur_row)
+			{
+			case 0:
+				show_str_centered(buffer,text_prod1.str,prods_col_len_in_edit,prod1_len_in_edit);
+				break;
+			case 1:
+				show_str_centered(buffer,text_prod2.str,prods_col_len_in_edit,prod2_len_in_edit);
+				break;
+			case 2:
+				show_str_centered(buffer,text_rest.str,prods_col_len_in_edit,text_rest_len_in_edit);
+				break;
+			}
+			cat_str_in_text(buffer,":    |");
+		},
+		{
+			if(cur_col == printm_args.ncols-1)
+			{
+				cat_str_in_text(buffer," | ");
+			}
+			else
+			{
+				add_ch_in_text(buffer,' ');
+			}
+		},
+		{
+			add_ch_in_text(buffer,' ');
+		},
+		{
+			cat_str_in_text(buffer,"|\r\n");
+		}
+	);
+
+	cat_str_in_text(buffer,"\r\n\r\n");
+
+	size_t nzero = 0;
+	for(size_t cur_col = 0; cur_col < matrix->ncolumns; cur_col++)
+	{
+		matrix->matrix[row][cur_col] = rest.matrix[2][cur_col];
+		if(rest.matrix[2][cur_col].numerator == 0)
+		{
+			nzero++;
+		}
+	}
+	if(nzero == matrix->ncolumns)
+	{
+		cat_str_in_text(buffer,"Sistema compatible indeterminado.");
+		cat_text_in_edit(edit,buffer);
+		return FAILURE;
+	}
+	else if(nzero == matrix->ncolumns-1 && matrix->matrix[row][nzero].numerator != 0)
+	{
+		cat_str_in_text(buffer,"Sistema incompatible.");
+		cat_text_in_edit(edit,buffer);			
+		return FAILURE;
+	}
+
+	cat_text_in_edit(edit,buffer);
+
+	return SUCCESS;
+}
+
+void solve_sys(hedit_t edit, matrix_t sys)
+{
+	text_t buffer = {};
+	num_t solutions[NXN_MAXN];
+	for(size_t i = 0; i < NXN_MAXN; i++)
+	{
+		set_num(solutions[i],0,0,NUM_STATE_INT);
+	}
+	for(char cur_row = sys.nrows-1; cur_row != -1; cur_row--)
+	{
+		num_t total;
+		set_num(total,0,0,NUM_STATE_INT);
+		for(char cur_col = cur_row+1, max_col = sys.ncolumns-1; cur_col < max_col; cur_col++)
+		{
+			total = sum_num(total,multiply_num(sys.matrix[cur_row][cur_col],solutions[cur_col]));
+			sys.matrix[cur_row][cur_col].numerator = 0;
+		}
+
+		char cur_col = cur_row;
+		sys.matrix[cur_row][sys.ncolumns-1] = rest_num(sys.matrix[cur_row][sys.ncolumns-1],total);
+		sys.matrix[cur_row][sys.ncolumns-1] = divide_num(sys.matrix[cur_row][sys.ncolumns-1],sys.matrix[cur_row][cur_col]);
+		set_num(sys.matrix[cur_row][cur_col],1,1,NUM_STATE_INT);
+		solutions[cur_col] = sys.matrix[cur_row][sys.ncolumns-1];
+
+		cat_str_in_text(buffer,"\r\n");
+		matrix_to_system(sys,&buffer);
+		cat_str_in_text(buffer,"\r\n");
+	}
+	cat_text_in_edit(edit,buffer);
 }
 
 //show gauss and returns the final matrix
 matrix_t * show_process_gauss(hedit_t edit, matrix_t matrix)
 {
 	static matrix_t matrix_result;
+	matrix_result = matrix;
+	print_matrix_args printm_args;
+	text_t buffer = {};
 
     init_edit(edit);
-	//print_matrix_in_edit_gauss_jordan(edit,&matrix);
 
-	for(size_t cur_row = 0; cur_row < matrix.nrows; cur_row++)
-	{
-		bool all_zero = true;
-		for(size_t cur_col = 0; cur_col < matrix.ncolumns && all_zero; cur_col++)
+	get_print_matrix_args(&matrix_result,&printm_args);
+	print_matrix(buffer,printm_args,
 		{
-			all_zero = (matrix.matrix[cur_row][cur_col].numerator == 0);
+			add_ch_in_text(buffer,'|');
+		},
+		{
+			if(cur_col == printm_args.ncols-1)
+			{
+				cat_str_in_text(buffer," | ");
+			}
+			else
+			{
+				add_ch_in_text(buffer,' ');
+			}
+		},
+		{
+			add_ch_in_text(buffer,' ');
+		},
+		{
+			cat_str_in_text(buffer,"|\r\n");
 		}
-		if(all_zero == false)
+		);
+	cat_str_in_text(buffer,"\r\n");
+
+	bool indet_sys = false;
+	for(size_t cur_row = 0; cur_row < matrix_result.nrows; cur_row++)
+	{
+		bool all_zero = true, last_elem_zero = (matrix_result.matrix[cur_row][matrix_result.ncolumns-1].numerator == 0);
+		for(size_t cur_col = 0, max_col = matrix_result.ncolumns-1; cur_col < max_col && all_zero; cur_col++)
 		{
-			cat_str_in_edit(edit, "\r\n\r\nSistema compatible indeterminado.");
-			return NULL;
+			all_zero = (matrix_result.matrix[cur_row][cur_col].numerator == 0);
+		}
+		if(all_zero)
+		{
+			if(last_elem_zero)
+			{
+				indet_sys = true;
+			}
+			else
+			{
+				cat_str_in_text(buffer, "\r\n\r\nSistema incompatible.");
+				cat_text_in_edit(edit,buffer);
+				return NULL;
+			}
 		}
 	}
+	if(indet_sys)
+	{
+		cat_str_in_text(buffer, "\r\n\r\nSistema compatible indeterminado.");
+		cat_text_in_edit(edit,buffer);
+		return NULL;
+	}
+
+	cat_text_in_edit(edit,buffer);
+
+	switch (make_it_zero(edit,&matrix_result,1,0))
+	{
+		case SUCCESS:
+			for(size_t cur_col = 0; cur_col < matrix_result.ncolumns; cur_col++)
+			{
+				init_text((*printm_args.printed_nums[1][cur_col]));
+				print_num_in_text((*printm_args.printed_nums[1][cur_col]),matrix_result.matrix[1][cur_col]);
+				printm_args.nums_len[1][cur_col] = get_strlen_in_edit(printm_args.printed_nums[1][cur_col]->str);
+				if(printm_args.nums_len[1][cur_col]  > printm_args.longest_num_per_col[cur_col])
+				{
+					printm_args.longest_num_per_col[cur_col] = printm_args.nums_len[1][cur_col];
+				}
+			}
+			init_text(buffer);
+			print_matrix(buffer,printm_args,
+				{
+					add_ch_in_text(buffer,'|');
+				},
+				{
+					if(cur_col == printm_args.ncols-1)
+					{
+						cat_str_in_text(buffer," | ");
+					}
+					else
+					{
+						add_ch_in_text(buffer,' ');
+					}
+				},
+				{
+					add_ch_in_text(buffer,' ');
+				},
+				{
+					cat_str_in_text(buffer,"|\r\n");
+				}
+				);
+			cat_str_in_text(buffer,"\r\n");
+			cat_text_in_edit(edit,buffer);
+			break;
+		case FAILURE:
+			return NULL;
+			break;
+		case ALREADY_0:
+			break;
+	}
+
+	if(matrix.is_3x3)
+	{
+		switch (make_it_zero(edit,&matrix_result,2,0))
+		{
+			case SUCCESS:
+				for(size_t cur_col = 0; cur_col < matrix_result.ncolumns; cur_col++)
+				{
+					init_text((*printm_args.printed_nums[2][cur_col]));
+					print_num_in_text((*printm_args.printed_nums[2][cur_col]),matrix_result.matrix[2][cur_col]);
+					printm_args.nums_len[2][cur_col] = get_strlen_in_edit(printm_args.printed_nums[2][cur_col]->str);
+					if(printm_args.nums_len[2][cur_col]  > printm_args.longest_num_per_col[cur_col])
+					{
+						printm_args.longest_num_per_col[cur_col] = printm_args.nums_len[2][cur_col];
+					}
+				}	
+				init_text(buffer);
+				print_matrix(buffer,printm_args,
+					{
+						add_ch_in_text(buffer,'|');
+					},
+					{
+						if(cur_col == printm_args.ncols-1)
+						{
+							cat_str_in_text(buffer," | ");
+						}
+						else
+						{
+							add_ch_in_text(buffer,' ');
+						}
+					},
+					{
+						add_ch_in_text(buffer,' ');
+					},
+					{
+						cat_str_in_text(buffer,"|\r\n");
+					}
+					);
+				cat_str_in_text(buffer,"\r\n");
+				cat_text_in_edit(edit,buffer);
+				break;
+			case FAILURE:
+				return NULL;
+				break;
+			case ALREADY_0:
+				break;
+		}
+
+		switch (make_it_zero(edit,&matrix_result,2,1))
+		{
+			case SUCCESS:
+				for(size_t cur_col = 0; cur_col < matrix_result.ncolumns; cur_col++)
+				{
+					init_text((*printm_args.printed_nums[2][cur_col]));
+					print_num_in_text((*printm_args.printed_nums[2][cur_col]),matrix_result.matrix[2][cur_col]);
+					printm_args.nums_len[2][cur_col] = get_strlen_in_edit(printm_args.printed_nums[2][cur_col]->str);
+					if(printm_args.nums_len[2][cur_col]  > printm_args.longest_num_per_col[cur_col])
+					{
+						printm_args.longest_num_per_col[cur_col] = printm_args.nums_len[2][cur_col];
+					}
+				}	
+				init_text(buffer);
+				print_matrix(buffer,printm_args,
+					{
+						add_ch_in_text(buffer,'|');
+					},
+					{
+						if(cur_col == printm_args.ncols-1)
+						{
+							cat_str_in_text(buffer," | ");
+						}
+						else
+						{
+							add_ch_in_text(buffer,' ');
+						}
+					},
+					{
+						add_ch_in_text(buffer,' ');
+					},
+					{
+						cat_str_in_text(buffer,"|\r\n");
+					}
+					);
+				cat_str_in_text(buffer,"\r\n");
+				cat_text_in_edit(edit,buffer);
+				break;
+			case FAILURE:
+				return NULL;
+				break;
+			case ALREADY_0:
+				break;
+		}
+
+	}
+
+	init_text(buffer);
+	matrix_to_system(matrix_result,&buffer);
+	cat_text_in_edit(edit,buffer);
+	solve_sys(edit,matrix_result);
 
 	return &matrix_result;
 }
@@ -909,6 +1166,8 @@ matrix_t * show_process_gauss(hedit_t edit, matrix_t matrix)
 void show_process_gauss_jordan(hedit_t edit, matrix_t matrix)
 {
 	matrix_t * jordan_matrix;
+	print_matrix_args printm_args;
+	text_t buffer = {};
 
     init_edit(edit);
 
@@ -917,6 +1176,173 @@ void show_process_gauss_jordan(hedit_t edit, matrix_t matrix)
 	{
 		return;
 	}
+	matrix = *jordan_matrix;
+
+	cat_str_in_text(buffer,"\r\n");
+
+	get_print_matrix_args(jordan_matrix,&printm_args);
+	print_matrix(buffer,printm_args,
+		{
+			add_ch_in_text(buffer,'|');
+		},
+		{
+			if(cur_col == printm_args.ncols-1)
+			{
+				cat_str_in_text(buffer," | ");
+			}
+			else
+			{
+				add_ch_in_text(buffer,' ');
+			}
+		},
+		{
+			add_ch_in_text(buffer,' ');
+		},
+		{
+			add_ch_in_text(buffer,'|');
+		}
+		);
+
+	if(matrix.is_3x3)
+	{
+		switch (make_it_zero(edit,&matrix,1,2))
+		{
+			case SUCCESS:
+				for(size_t cur_col = 0; cur_col < matrix.ncolumns; cur_col++)
+				{
+					init_text((*printm_args.printed_nums[1][cur_col]));
+					print_num_in_text((*printm_args.printed_nums[1][cur_col]),matrix.matrix[1][cur_col]);
+					printm_args.nums_len[1][cur_col] = get_strlen_in_edit(printm_args.printed_nums[1][cur_col]->str);
+					if(printm_args.nums_len[1][cur_col]  > printm_args.longest_num_per_col[cur_col])
+					{
+						printm_args.longest_num_per_col[cur_col] = printm_args.nums_len[1][cur_col];
+					}
+				}
+				init_text(buffer);
+				print_matrix(buffer,printm_args,
+					{
+						add_ch_in_text(buffer,'|');
+					},
+					{
+						if(cur_col == printm_args.ncols-1)
+						{
+							cat_str_in_text(buffer," | ");
+						}
+						else
+						{
+							add_ch_in_text(buffer,' ');
+						}
+					},
+					{
+						add_ch_in_text(buffer,' ');
+					},
+					{
+						cat_str_in_text(buffer,"|\r\n");
+					}
+					);
+				cat_str_in_text(buffer,"\r\n");
+				cat_text_in_edit(edit,buffer);
+				break;
+			case FAILURE:
+				return;
+			case ALREADY_0:
+				break;
+		}
+
+		switch (make_it_zero(edit,&matrix,0,2))
+		{
+			case SUCCESS:
+				for(size_t cur_col = 0; cur_col < matrix.ncolumns; cur_col++)
+				{
+					init_text((*printm_args.printed_nums[0][cur_col]));
+					print_num_in_text((*printm_args.printed_nums[0][cur_col]),matrix.matrix[0][cur_col]);
+					printm_args.nums_len[0][cur_col] = get_strlen_in_edit(printm_args.printed_nums[0][cur_col]->str);
+					if(printm_args.nums_len[0][cur_col]  > printm_args.longest_num_per_col[cur_col])
+					{
+						printm_args.longest_num_per_col[cur_col] = printm_args.nums_len[0][cur_col];
+					}
+				}	
+				init_text(buffer);
+				print_matrix(buffer,printm_args,
+					{
+						add_ch_in_text(buffer,'|');
+					},
+					{
+						if(cur_col == printm_args.ncols-1)
+						{
+							cat_str_in_text(buffer," | ");
+						}
+						else
+						{
+							add_ch_in_text(buffer,' ');
+						}
+					},
+					{
+						add_ch_in_text(buffer,' ');
+					},
+					{
+						cat_str_in_text(buffer,"|\r\n");
+					}
+					);
+				cat_str_in_text(buffer,"\r\n");
+				cat_text_in_edit(edit,buffer);
+				break;
+			case FAILURE:
+				return;
+			case ALREADY_0:
+				break;
+		}
+
+	}
+
+	switch (make_it_zero(edit,&matrix,0,1))
+	{
+		case SUCCESS:
+			for(size_t cur_col = 0; cur_col < matrix.ncolumns; cur_col++)
+			{
+				init_text((*printm_args.printed_nums[0][cur_col]));
+				print_num_in_text((*printm_args.printed_nums[0][cur_col]),matrix.matrix[0][cur_col]);
+				printm_args.nums_len[0][cur_col] = get_strlen_in_edit(printm_args.printed_nums[0][cur_col]->str);
+				if(printm_args.nums_len[0][cur_col]  > printm_args.longest_num_per_col[cur_col])
+				{
+					printm_args.longest_num_per_col[cur_col] = printm_args.nums_len[0][cur_col];
+				}
+			}	
+			init_text(buffer);
+			print_matrix(buffer,printm_args,
+				{
+					add_ch_in_text(buffer,'|');
+				},
+				{
+					if(cur_col == printm_args.ncols-1)
+					{
+						cat_str_in_text(buffer," | ");
+					}
+					else
+					{
+						add_ch_in_text(buffer,' ');
+					}
+				},
+				{
+					add_ch_in_text(buffer,' ');
+				},
+				{
+					cat_str_in_text(buffer,"|\r\n");
+				}
+				);
+			cat_str_in_text(buffer,"\r\n");
+			cat_text_in_edit(edit,buffer);
+			break;
+		case FAILURE:
+			return;
+		case ALREADY_0:
+			break;
+	}
+
+	init_text(buffer);
+	matrix_to_system(matrix,&buffer);
+	cat_text_in_edit(edit,buffer);
+	solve_sys(edit,matrix);
 }
 //show gauss-jordan
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "num.h"
+#include "text.h"
 
 #define NXN_MAXN 3
 
@@ -14,3 +15,5 @@ typedef struct
         size_t ncolumns;
         bool is_3x3;
 }matrix_t;
+
+void matrix_to_system(matrix_t matrix, text_t * text);

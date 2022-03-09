@@ -58,60 +58,6 @@ BOOL get_matrix(HWND (*matrix_edits)[NXN_MAXN+1], BOOL is_3x3, matrix_t * matrix
 	return TRUE;
 }
 
-text_t matrix_to_system(matrix_t matrix)
-{
-	if(matrix.is_3x3)
-	{
-		matrix.nrows = 3;
-		matrix.ncolumns = 4;
-	}
-
-	text_t text = {};
-	for(size_t i = 0; i < matrix.nrows; i++)
-	{
-		for(size_t j = 0; j < matrix.ncolumns; j++)
-		{
-			matrix.matrix[i][j] = simplify_num(matrix.matrix[i][j]);
-
-			num_t num;
-			if(j != 0 && j != matrix.ncolumns-1)
-			{
-				if(matrix.matrix[i][j].numerator < 0)
-				{
-					cat_str_in_text(text, "- ");
-				}
-				else
-				{
-					cat_str_in_text(text, "+ ");
-				}
-				num = abs_num(matrix.matrix[i][j]);
-			}
-			else
-			{
-				num = matrix.matrix[i][j];
-			}
-			print_num_in_text(text,num);
-			if(j != matrix.ncolumns-1)
-			{
-				add_ch_in_text(text,'x'+j);
-				if(j == matrix.ncolumns-2)
-				{
-					cat_str_in_text(text," = ");
-				}
-				else
-				{
-					add_ch_in_text(text,' ');
-				}
-			}
-			else
-			{
-				cat_str_in_text(text,"\r\n");
-			}
-		}
-	}
-	return text;
-}
-
 void show_process(hedit_t hedit, matrix_t matrix, HWND CB_method)
 {
 	char method_name[30];
@@ -177,14 +123,14 @@ void * show_thread_routine(void * arg)
 
 		matrix_t matrix;
 		BOOL matrix_ready = get_matrix(show_thread_args.matrix_elem,show_thread_args.is_3x3,&matrix);
-		text_t text_equation_system = {};//1
-		text_t text_process = {};//2
 
 		if(matrix_ready)
 		{
 			puts("ready");
 
-			Edit_SetText(show_thread_args.edit_equation_system, matrix_to_system(matrix).str);
+			text_t text_equation_system = {};
+			matrix_to_system(matrix,&text_equation_system);
+			Edit_SetText(show_thread_args.edit_equation_system, text_equation_system.str);
 			show_process(show_thread_args.edit_process, matrix, show_thread_args.combobox_method);
 
 			printf("Sistema de ecuaciones:\n%s",text_equation_system.str);
@@ -254,7 +200,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 									label_matrix_elem = CreateWindow
 									(
 										WC_STATIC,
-										"       X               Y               TI",
+										"      X             Y            TI",
 										WS_VISIBLE|WS_CHILD|WS_BORDER|SS_LEFT,
 										MATRIX_X,
 										MATRIX_Y-20,
@@ -311,7 +257,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 									label_matrix_elem = CreateWindow
 									(
 										WC_STATIC,
-										"       X               Y               Z               TI",
+										"      X             Y            Z             TI",
 										WS_VISIBLE|WS_CHILD|WS_BORDER|SS_LEFT,
 										MATRIX_X,
 										MATRIX_Y-20,
@@ -419,7 +365,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			label_matrix_elem = CreateWindow
 			(
 				WC_STATIC,
-				"       X               Y               Z               TI",
+				"      X             Y            Z             TI",
 				WS_VISIBLE|WS_CHILD|WS_BORDER|SS_LEFT,
 				MATRIX_X,
 				MATRIX_Y-20,

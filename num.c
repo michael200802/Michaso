@@ -101,6 +101,7 @@ inline num_t simplify_num(num_t num)
 		return num;
 	}
 
+	/*
 	uinteger_t max = num.denominator < num.numerator ? num.denominator :  num.numerator;
 	for(uinteger_t i = 2; i <= max; i++)
 	{
@@ -113,6 +114,20 @@ inline num_t simplify_num(num_t num)
 			max = num.denominator < num.numerator ? num.denominator :  num.numerator;
 		}
 	}
+	*/
+
+	uinteger_t dividen, divisor, remainder, aux;
+	do
+	{
+		for(dividen = num.numerator, divisor = num.denominator; divisor != 0;)
+		{
+			remainder = dividen%divisor;
+			dividen = divisor;
+			divisor = remainder; 
+		}
+		num.numerator /= dividen;
+		num.denominator /= dividen;
+	} while (dividen != 1);
 
 	if(is_negative)
 	{
@@ -191,7 +206,7 @@ inline num_t multiply_num(num_t num1, num_t num2)
 	num1.denominator *= num2.denominator;
 
     num1 = simplify_num(num1);
-
+	
 	return num1;
 }
 

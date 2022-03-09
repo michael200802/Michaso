@@ -9,7 +9,7 @@
 
 #include "text.h"
 
-typedef const HWND hedit_t;
+typedef const HWND restrict hedit_t;
 
 //cramer
 void show_process_cramer(hedit_t edit, matrix_t matrix);
