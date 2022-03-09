@@ -311,7 +311,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			//se crea el COMBOBOX metodo
 			combo_box_metodo = CreateWindow
 			(
-				WC_COMBOBOX,
+				"COMBOBOX",
 				"",
 				WS_CHILD|WS_VISIBLE|WS_OVERLAPPED|CBS_DROPDOWNLIST|CBS_HASSTRINGS,
 				MATRIX_X,
@@ -360,6 +360,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			);
 			ComboBox_AddString(combo_box_nxn,"3x3");
 			ComboBox_AddString(combo_box_nxn,"2x2");
+			ComboBox_SetCurSel(combo_box_nxn,0);
 
 			//se crea el label con el titulo de la matriz
 			label_matrix_elem = CreateWindow
@@ -472,7 +473,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			send_signal_to_show_thread();
 
 			break;
-		case WM_CLOSE:
+		case WM_DESTROY:
 
 			pthread_mutex_destroy(&show_thread_args.matrix_has_changed_mutex);
 			pthread_mutex_destroy(&show_thread_args.sleep_mutex);
@@ -528,7 +529,7 @@ int WINAPI WinMain(HINSTANCE hCurInstance, HINSTANCE hPrevInstance, LPSTR lpszCm
 	ShowWindow(hWnd,SW_SHOWMAXIMIZED);
 
 	MSG msg;
-	while(GetMessage(&msg,hWnd,0,0) == TRUE)
+	while(GetMessage(&msg,NULL,0,0) == TRUE)
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
