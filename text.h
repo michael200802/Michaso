@@ -52,18 +52,36 @@ short_text_t create_short_text(const char * str);
 			print_in_text(text, "%"PRId64 "/" "%"PRId64, num.numerator, num.denominator);	\
 			break;																			\
 		case NUM_STATE_DECIMAL:																\
-			{																						\
-				integer_t modulus, digit1, digit2;													\
-																									\
-				modulus = num.numerator % num.denominator;											\
-				digit1 = (modulus*10)/num.denominator;												\
-																									\
-				modulus =  (modulus*10)%num.denominator;											\
-				digit2 = (modulus*10)/num.denominator;												\
-																									\
-				printf("%"PRId64".%"PRId64, num.numerator / num.denominator, digit1*10 + digit2);	\
-			}																						\
-			break;																					\
+			{																									\
+				integer_t modulus, digit1, digit2;																\
+																												\
+				modulus = num.numerator % num.denominator;														\
+				modulus = modulus < 0 ? modulus*-1 : modulus;													\
+				digit1 = (modulus*10)/num.denominator;															\
+																												\
+				modulus =  (modulus*10)%num.denominator;														\
+				digit2 = (modulus*10)/num.denominator;															\
+																												\
+				if(digit1 == 0)																					\
+				{																								\
+					if(digit2 == 0)																				\
+					{																							\
+						print_in_text(text, "%"PRId64, num.numerator / num.denominator);						\
+					}																							\
+					else																						\
+					{																							\
+						print_in_text(text, "%"PRId64 ".0" "%"PRId64, num.numerator / num.denominator, digit2);	\
+					}																							\
+					break;																						\
+				}																								\
+				else if(digit2 == 0)																			\
+				{																								\
+					print_in_text(text, "%"PRId64 "." "%"PRId64, num.numerator / num.denominator, digit1);		\
+					break;																						\
+				}																								\
+				print_in_text(text, "%"PRId64".%"PRId64, num.numerator / num.denominator, digit1*10 + digit2);	\
+			}																									\
+			break;																								\
 	}
 
 #define add_ch_in_text(text,ch)	\

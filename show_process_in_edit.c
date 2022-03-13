@@ -546,14 +546,24 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 
 	for(size_t cur_row = 0; cur_row < matrix.nrows; cur_row++)
 	{
-		bool all_zero;
-		for(size_t cur_col = 0; cur_col < matrix.ncolumns && all_zero; cur_col++)
+		bool all_zero = true, last_zero = matrix.matrix[cur_row][matrix.ncolumns-1].numerator == 0;
+		for(size_t cur_col = 0, maxcol = matrix.ncolumns-1; cur_col < maxcol && all_zero; cur_col++)
 		{
 			all_zero = (matrix.matrix[cur_row][cur_col].numerator == 0);
 		}
 		if(all_zero)
 		{
-			cat_str_in_edit(edit, "\r\n\r\nSistema compatible indeterminado.");
+			if(last_zero)
+			{
+				cat_str_in_text(text, "Sistema compatible indeterminado: Una de las ecuaciones es equivalente a 0 = 0.");
+			}
+			else
+			{
+				cat_str_in_text(text, "Sistema incompatible: Una de las ecuaciones es equivalente a 0 = ");
+				print_num_in_text(text,matrix.matrix[cur_row][matrix.ncolumns-1]);
+				add_ch_in_text(text,'.');
+			}
+			cat_text_in_edit(edit,text);
 			return;
 		}
 	}
@@ -619,7 +629,7 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 
 	if(sys_det.numerator == 0)
 	{
-		cat_str_in_edit(edit,"\r\nNo se puede resolver el sistema pues la determinante del sistema es cero.");
+		cat_str_in_edit(edit,"\r\nSistema incompatible: no se puede resolver el sistema pues la determinante del sistema es cero.");
         return;
 	}
 

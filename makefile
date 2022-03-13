@@ -3,6 +3,9 @@
 compiler=x86_64-w64-mingw32-gcc -O3
 #compiler=gcc
 
+_num.o: _num.c _num.h
+	$(compiler) -c _num.c -o $@
+
 all: main.exe
 
 main.exe: main.o text.o num.o show_process_in_edit.o matrix.o

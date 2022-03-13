@@ -161,6 +161,11 @@ inline num_t sum_num(num_t num1, num_t num2)
 
 	num1 = simplify_num(num1);
 
+	if(num2.state == NUM_STATE_DECIMAL)
+	{
+		num1.state = NUM_STATE_DECIMAL;
+	}
+
 	return num1;
 }
 
@@ -194,6 +199,11 @@ inline num_t divide_num(num_t num1, num_t num2)
 
 	num1 = simplify_num(num1);
 
+	if(num2.state == NUM_STATE_DECIMAL)
+	{
+		num1.state = NUM_STATE_DECIMAL;
+	}
+
 	return num1;
 }
 
@@ -206,7 +216,12 @@ inline num_t multiply_num(num_t num1, num_t num2)
 	num1.denominator *= num2.denominator;
 
     num1 = simplify_num(num1);
-	
+
+	if(num2.state == NUM_STATE_DECIMAL)
+	{
+		num1.state = NUM_STATE_DECIMAL;
+	}
+
 	return num1;
 }
 
@@ -294,12 +309,17 @@ bool str_to_num(const char * str, num_t * num)
 		integer_t aux;
 
 		str++;
+		while(*str == '0')
+		{
+			*str++;
+			pow10*=10;
+		}
 		if(sscanf(str,"%"SCNd64,&aux) != 1)
 		{
 			return false;
 		}
 
-		pow10 = pow_integer(10,get_length_integer(aux));
+		pow10 *= pow_integer(10,get_length_integer(aux));
 
 		num->numerator *= pow10;
 		num->numerator += aux;
@@ -341,12 +361,18 @@ bool str_to_num(const char * str, num_t * num)
 			integer_t aux;
 
 			str++;
+			pow10 = 1;
+			while(*str == '0')
+			{
+				pow10*=10;
+				str++;
+			}
 			if(sscanf(str,"%"SCNd64,&aux) != 1)
 			{
 				return false;
 			}
 
-			pow10 = pow_integer(10,get_length_integer(aux));
+			pow10 *= pow_integer(10,get_length_integer(aux));
 
 			num->denominator *= pow10;
 			num->denominator += aux;
@@ -404,52 +430,3 @@ inline void printnum(num_t num)
 			break;
 	}
 }
-
-/*
-#include <stdlib.h>
-int main(int argc, char ** argv)
-{
-	argv++;
-	if(*argv == NULL)
-	{
-		return -1;
-	}
-	puts("...");
-
-	size_t nnums = argc-1;
-	num_t * array = (num_t*)calloc(nnums,sizeof(num_t));
-
-	for(size_t i = 0; i < nnums; i++)
-	{
-		if(str_to_num(argv[i],array+i) == false)
-		{
-			puts("...");
-			return -1;
-		}
-		printnum(array[i]);
-	}
-
-	num_t result = INITIALIZER_NUM;
-
-	//sacar el total de la suma
-	for(size_t i = 0; i < nnums; i++)
-	{
-		result = sum_num(result,array[i]);
-	}
-	puts("Suma");
-	printnum(result);
-
-	//sacar el total de la resta
-	result = rest_num(result,result);
-	for(size_t i = 1; i < nnums; i++)
-	{
-		result = rest_num(result,array[i]);
-		result = abs_num(result);
-	}
-	puts("Resta");
-	printnum(result);
-
-	puts("...");
-	return 0;
-}
-*/
