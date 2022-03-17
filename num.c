@@ -177,8 +177,8 @@ static inline void reduce_uints(uinteger_t * const restrict num1, uinteger_t * r
 
 inline void simplify_num(num_t * const restrict num)
 {
-    num->int_part += num->numerator/num->denominator;
-    num->numerator = num->numerator%num->denominator;
+    num->int_part += num->numerator / num->denominator;
+    num->numerator = num->numerator % num->denominator;
     if(num->numerator == 0)
     {
         num->denominator = 1;
@@ -418,12 +418,14 @@ inline void multiply_num(const num_t * const num1, const num_t * const num2, num
 
     if(num1->state != NUM_STATE_INT || num2->state != NUM_STATE_INT)
     {
+        //supposing that A a/b == num1 and B b/c == num2
         //A a/b * B c/d
         //(A + a/b) * (B + c/d)
         //A*B + A*c/d + B*a/b + a*c/b*d
         //A*B + (A*c/d + B*a/b + a*c/b*d)
-        //A*B + x/y
-        
+        //A*B + Z x/y
+        //(A*B + Z) + x/y
+
         //A*B
         product->int_part = num1->int_part*num2->int_part;
 
@@ -452,7 +454,17 @@ inline void multiply_num(const num_t * const num1, const num_t * const num2, num
             fractions[2].denominator *= aux.denominator;
         }
 
+        //get (A*B + Z)
+        //get the int part of each fraction
+        for(unsigned char i = 0; i < 3; i++)
+        {
+            product->int_part += fractions[i].numerator / fractions[i].denominator;
+            fractions[i].numerator = fractions[i].numerator % fractions[i].denominator;
+            reduce_uints(&fractions[i].numerator,&fractions[i].denominator);
+        }
+
         //get x/y
+        //get total of all fractions
         for(unsigned char i = 0; i < 3; i++)
         {
             uinteger_t lcm = get_lcm(total.denominator,fractions[i].denominator);
@@ -465,7 +477,9 @@ inline void multiply_num(const num_t * const num1, const num_t * const num2, num
         product->numerator = total.numerator;
         product->denominator = total.denominator;
         
-        //if one of them is decimal, the product is also a decimal        
+        //at this point fianlly product is equal to (A*B + Z) + x/y
+
+        //if one of them (num1 or num2) is decimal, the product is also a decimal
         if(num2->state == NUM_STATE_DECIMAL)
         {
             product->state = NUM_STATE_DECIMAL;

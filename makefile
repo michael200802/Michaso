@@ -30,7 +30,7 @@ clean: *.o
 text_text: text_text.c text.o
 	$(compiler) $? -o $@
 
-num_num: _num.o num_num.c
+num_num: num.o num_num.c
 	$(compiler) $? -o $@
 
 #test
