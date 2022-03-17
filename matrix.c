@@ -1,6 +1,6 @@
 #include "matrix.h"
 
-void matrix_to_system(matrix_t matrix, text_t * text)
+void matrix_to_system(matrix_t matrix, text_t * const restrict text)
 {
 	if(matrix.is_3x3)
 	{
@@ -15,7 +15,7 @@ void matrix_to_system(matrix_t matrix, text_t * text)
         bool is_negative_last_elem = matrix.matrix[i][maxj].numerator < 0;
         for(j = 0; j < maxj; j++)
         {
-            if(matrix.matrix[i][j].numerator == 0)
+            if(is_num_zero(matrix.matrix[i][j]))
             {
                 nzeros++;
             }
@@ -31,11 +31,11 @@ void matrix_to_system(matrix_t matrix, text_t * text)
         }
         else if(maxj-nzeros == 1)
         {
-            if(matrix.matrix[i][no_zero_index].numerator == -1)
+            if(is_num_minus1(matrix.matrix[i][no_zero_index]))
             {
                 add_ch_in_text((*text),'-');
             }
-            else if(matrix.matrix[i][no_zero_index].numerator != 1)
+            else if(!is_num_one(matrix.matrix[i][no_zero_index]))
             {
                 print_num_in_text((*text),matrix.matrix[i][no_zero_index]);
             }
@@ -45,10 +45,11 @@ void matrix_to_system(matrix_t matrix, text_t * text)
         {
             for(j = 0; j < maxj; j++)
             {
-                num_t num = simplify_num(matrix.matrix[i][j]);
-                if(num.numerator != 0)
+                num_t num = matrix.matrix[i][j];
+
+                if(!is_num_zero(num))
                 {
-                    if(num.numerator != 1)
+                    if(!is_num_one(num))
                     {
                         print_num_in_text((*text),num);
                     }
@@ -56,20 +57,19 @@ void matrix_to_system(matrix_t matrix, text_t * text)
                 }
                 if(j != maxj-1)
                 {
-                    if(matrix.matrix[i][j+1].numerator < 0)
+                    if(matrix.matrix[i][j+1].sign == NUM_SIGN_NEGATIVE)
                     {
                         cat_str_in_text((*text)," - ");
                     }
-                    else if(matrix.matrix[i][j+1].numerator != 0)
+                    else if(!is_num_zero(matrix.matrix[i][j+1]))
                     {
                         cat_str_in_text((*text)," + ");
                     }
                 }
-                matrix.matrix[i][j+1] = abs_num(matrix.matrix[i][j+1]);
+                abs_num(matrix.matrix[i][j+1]);
             }
         }
 
-        matrix.matrix[i][matrix.ncolumns-1] = simplify_num(matrix.matrix[i][matrix.ncolumns-1]);
         cat_str_in_text((*text)," = ");
         if(is_negative_last_elem)
         {

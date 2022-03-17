@@ -1,438 +1,681 @@
 #include "num.h"
-#include <ctype.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stddef.h>
 
-inline integer_t pow_integer(integer_t x, unsigned int y)
+inline compare_num_returnv_t compare_num(const num_t * const num1, const num_t * const num2)
 {
-	uinteger_t result = 1;
-	bool is_negative = x < 0 ? true : false;
+    //- + which sign?
+    if(num1->sign != num2->sign)
+    {
+        if(num2->sign == NUM_SIGN_NEGATIVE)
+        {
+            return NUM_GREATER;
+        }
+        return NUM_LESSER;
+    }
 
-	if(is_negative)
-	{
-		x *= -1;
-	}
+    //compare int parts 
+    if(num1->int_part > num2->int_part)
+    {
+        return NUM_GREATER;
+    }
+    else if(num1->int_part < num2->int_part)
+    {
+        return NUM_LESSER;
+    }
 
-	for(unsigned int i = 0; i < y; i++)
-	{
-		result *= x;
-	}
+    //it's a homogeneous fraction
+    if(num1->denominator == num2->denominator)
+    {
+        if(num1->numerator == num2->numerator)
+        {
+            return NUM_EQUAL;
+        }
+        return (num1->numerator > num2->numerator ? NUM_GREATER : NUM_LESSER);
+    }
 
-	return ((integer_t)result) * (is_negative && y%2 == 0? -1 : 1);
+    /*
+    //difference between denominator and numerator (denominator - numerator)
+    uinteger_t dif_num1 = num1->denominator - num1->numerator;
+    uinteger_t dif_num2 = num2->denominator - num2->numerator;
+
+    //how away are they from becoming 1?
+    if(dif_num1 == dif_num2)
+    {
+        return (num1->denominator > num2->denominator ? NUM_GREATER : NUM_LESSER);
+    }
+    if(num1->denominator > num2->denominator)
+    {
+        if(dif_num1 < dif_num2)
+        {
+            return NUM_GREATER;
+        }
+        //...
+    }
+    if(dif_num1 > dif_num2)
+    {
+        return NUM_LESSER;
+    }
+    //..
+    */
+
+   if(num1->numerator == 0)
+   {
+       return NUM_LESSER;
+   }
+   else if(num2->numerator == 0)
+   {
+       return NUM_GREATER;
+   }
+
+    uinteger_t quotient1 = num1->denominator / num1->numerator, remainder1 = num1->denominator % num1->numerator;
+    uinteger_t quotient2 = num2->denominator / num2->numerator, remainder2 = num2->denominator % num2->numerator;
+
+    if(quotient1 == quotient2)
+    {
+        if(remainder1 == remainder2)
+        {
+            if(num1->denominator > num2->denominator)
+            {
+                return NUM_GREATER;
+            }
+            return NUM_LESSER;
+        }
+        if(remainder1 < remainder2)
+        {
+            return NUM_GREATER;
+        }
+        return NUM_LESSER;
+    }
+    if(quotient1 < quotient2)
+    {
+        return NUM_GREATER;
+    }
+    return NUM_LESSER;
 }
 
-inline size_t get_length_integer(integer_t num)
+inline compare_num_returnv_t compare_num_with_int(const num_t * const restrict num, integer_t integer)
 {
-	size_t len = 0;
-	do
+	if(num->sign == NUM_SIGN_NEGATIVE)
 	{
-		num /= 10;
-		len++;
-	}while(num != 0);
-	return len;
+		if(integer < 0)
+		{
+            integer = abs_integer(integer);
+
+            if(num->int_part < integer)
+            {
+                return NUM_GREATER;
+            }
+            else if(num->int_part > integer)
+            {
+                return NUM_LESSER;
+            }
+
+            if(num->numerator == 0)
+            {
+                return NUM_EQUAL;
+            }
+		}
+        return NUM_LESSER;
+	}
+
+    if(num->int_part > integer)
+    {
+        return NUM_GREATER;
+    }
+    else if(num->int_part < integer)
+    {
+        return NUM_LESSER;
+    }
+
+    if(num->numerator != 0)
+    {
+        return NUM_GREATER;
+    }
+    return NUM_EQUAL;
 }
 
-inline bool compare_num(num_t num1, num_t num2)
+//Greatest common divisor
+//I love you, Euclid's algorithm
+uinteger_t get_gcd(uinteger_t num1, uinteger_t num2)
 {
-	num1 = simplify_num(num1);
-	num2 = simplify_num(num2);
-
-	num1.numerator *= num2.denominator;
-	num2.numerator *= num1.denominator;
-	/*
-	num1.denominator *= num2.denominator;
-	num2.denominator *= num1.denominator;
-	*/
-
-	if(num1.numerator > num2.numerator)
-	{
-		return true;
-	}
-	return false;
+    uinteger_t dividend = num1, divisor = num2, remainder;
+    while(divisor != 0)
+    {
+        remainder = dividend % divisor;
+        dividend = divisor;
+        divisor = remainder;
+    }
+    return dividend;
 }
 
-inline num_t abs_num(num_t num)
+//Least common multiple
+uinteger_t get_lcm(uinteger_t num1, uinteger_t num2)
 {
-	num.denominator = abs_integer(num.denominator);
-	num.numerator = abs_integer(num.numerator);
-	return num;
+    return num1*num2 / get_gcd(num1,num2);
 }
 
-inline num_t simplify_num(num_t num)
+static inline void reduce_uints(uinteger_t * const restrict num1, uinteger_t * restrict const num2)
 {
-	bool is_negative;
-
-	if(num.numerator == 0)
-	{
-		num.denominator = 1;
-	}
-	else
-	{
-		if(num.denominator < 0)
-		{
-			num.denominator *= -1;
-			num.numerator *= -1;
-		}
-
-		is_negative = num.numerator < 0 ? true : false;
-		if(is_negative)
-		{
-			num.numerator = abs_integer(num.numerator);
-		}
-
-		if(num.denominator == num.numerator)
-		{
-			num.numerator = 1;
-			num.denominator = 1;
-		}
-	}
-
-	if(num.denominator == 1)
-	{
-		if(is_negative)
-		{
-			num.numerator *= -1;
-		}
-		if(num.state == NUM_STATE_FRACTION)
-		{
-			num.state = NUM_STATE_INT;
-		}
-		return num;
-	}
-
-	/*
-	uinteger_t max = num.denominator < num.numerator ? num.denominator :  num.numerator;
-	for(uinteger_t i = 2; i <= max; i++)
-	{
-		if(num.denominator%i == 0 && num.numerator%i == 0)
-		{
-			num.numerator /= i;
-			num.denominator /= i;
-
-			i = 1;
-			max = num.denominator < num.numerator ? num.denominator :  num.numerator;
-		}
-	}
-	*/
-
-	uinteger_t dividen, divisor, remainder, aux;
-	do
-	{
-		for(dividen = num.numerator, divisor = num.denominator; divisor != 0;)
-		{
-			remainder = dividen%divisor;
-			dividen = divisor;
-			divisor = remainder; 
-		}
-		num.numerator /= dividen;
-		num.denominator /= dividen;
-	} while (dividen != 1);
-
-	if(is_negative)
-	{
-		num.numerator *= -1;
-	}
-
-	if(num.state != NUM_STATE_DECIMAL)
-	{
-		if(num.denominator == 1)
-		{
-			num.state = NUM_STATE_INT;
-		}
-		else
-		{
-			num.state = NUM_STATE_FRACTION;
-		}
-	}
-
-    return num;
+    uinteger_t dividend, divisor, remainder;
+    while(1)
+    {
+        dividend = *num1;
+        divisor = *num2;
+        while(divisor != 0)
+        {
+            remainder = dividend % divisor;
+            dividend = divisor;
+            divisor = remainder;
+        }
+        if(dividend == 1)
+        {
+            break;
+        }
+        *num1 /= dividend;
+        *num2 /= dividend;
+    }
 }
 
-inline num_t sum_num(num_t num1, num_t num2)
+inline void simplify_num(num_t * const restrict num)
 {
-	num1 = simplify_num(num1);
-	num2 = simplify_num(num2);
-
-	num1.numerator *= num2.denominator;
-	num1.numerator += num2.numerator*num1.denominator;
-
-	num1.denominator *= num2.denominator;
-
-	num1 = simplify_num(num1);
-
-	if(num2.state == NUM_STATE_DECIMAL)
-	{
-		num1.state = NUM_STATE_DECIMAL;
-	}
-
-	return num1;
+    num->int_part += num->numerator/num->denominator;
+    num->numerator = num->numerator%num->denominator;
+    if(num->numerator == 0)
+    {
+        num->denominator = 1;
+        num->state = NUM_STATE_INT;
+    }
+    else
+    {
+        reduce_uints(&num->numerator, &num->denominator);
+        switch (num->state)
+        {
+            case NUM_STATE_INT:
+                num->state = NUM_STATE_FRACTION;
+                break;
+            case NUM_STATE_DECIMAL:
+                if(num->denominator > 999999999)
+                {
+                    uinteger_t divisor = 10;
+                    {
+                        uinteger_t denominator = num->denominator/1000000000;
+                        while((denominator/=10) != 0)
+                        {
+                            divisor *= 10;
+                        }
+                    }
+                    num->numerator /= divisor;
+                    num->denominator /= divisor;
+                }
+                break;
+        }
+    }
 }
 
-inline num_t rest_num(num_t num1, num_t num2)
+inline void sum_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
-	num2.numerator *= -1;
-	return sum_num(num1,num2);
+    //just add
+    if(num1->sign == num2->sign)
+    {
+        product->sign = num1->sign;
+        product->int_part = num1->int_part + num2->int_part;
+
+        if(num1->state != NUM_STATE_INT || num2->state != NUM_STATE_INT)
+        {
+            if(num1->denominator == num2->denominator)
+            {
+                product->numerator = num1->numerator + num2->numerator;
+                product->denominator = num1->denominator;
+            }
+            else
+            {
+                product->denominator = get_lcm(num1->denominator,num2->denominator);
+                product->numerator = num1->numerator*(product->denominator/num1->denominator) + num2->numerator*(product->denominator/num2->denominator);
+            }
+        }
+        else
+        {
+            product->numerator = 0;
+            product->denominator = 1;
+        }
+    }//they are the oppsitive of each other
+    else if(num1->state == num2->state && num1->int_part == num2->int_part && num1->numerator == num2->denominator && num1->numerator == num2->denominator)
+    {
+        product->int_part = 0;
+        product->numerator = 0;
+        product->denominator = 1;
+        product->sign = NUM_SIGN_POSITIVE;
+    }//different signs, different values
+    else
+    {
+        //which has the greater abs?
+        compare_num_returnv_t comp_returnv;
+        {
+            num_t num_copy;
+            if(num1->sign == NUM_SIGN_NEGATIVE)
+            {
+                num_copy = *num1;
+                num_copy.sign = NUM_SIGN_POSITIVE;
+                comp_returnv = compare_num(&num_copy,num2);
+            }
+            else
+            {
+                num_copy = *num2;
+                num_copy.sign = NUM_SIGN_POSITIVE;
+                comp_returnv = compare_num(num1,&num_copy);
+            }
+        }
+
+        switch (comp_returnv)
+        {
+            case NUM_LESSER:
+                product->sign = num2->sign;
+
+                product->int_part = num2->int_part - num1->int_part;
+                //do we have to rest the fractions?
+                if(num1->state != NUM_STATE_INT || num2->state != NUM_STATE_INT)
+                {
+                    //homogeneous fractions
+                    if(num1->denominator == num2->denominator)
+                    {
+                        product->denominator = num1->denominator;
+                        if(num1->numerator > num2->numerator)
+                        {
+                            product->numerator = num1->numerator - num2->numerator;
+                            product->int_part--;
+                            product->numerator = product->denominator - product->numerator;
+                        }
+                        else
+                        {
+                            product->numerator = num2->numerator - num1->numerator;
+                        }
+                    }
+                    else//they are not homogeneous
+                    {
+                        product->denominator = get_lcm(num1->denominator,num2->denominator);
+                        
+                        uinteger_t num2_numerator = num2->numerator*(product->denominator/num2->denominator);
+                        uinteger_t num1_numerator = num1->numerator*(product->denominator/num1->denominator);
+                        if(num1_numerator > num2_numerator)
+                        {
+                            product->numerator = num1_numerator - num2_numerator;
+                            product->int_part--;
+                            product->numerator = product->denominator - product->numerator;
+                        }
+                        else
+                        {
+                            product->numerator = num2_numerator - num1_numerator;
+                        }
+                    }
+                }
+                else
+                {
+                    product->numerator = 0;
+                    product->denominator = 1;
+                }
+                break;
+            case NUM_GREATER:
+                product->sign = num1->sign;
+
+                product->int_part = num1->int_part - num2->int_part;
+                //do we have to rest the fractions?
+                if(num1->state != NUM_STATE_INT || num2->state != NUM_STATE_INT)
+                {
+                    //homogeneous fractions
+                    if(num1->denominator == num2->denominator)
+                    {
+                        product->denominator = num1->denominator;
+                        if(num2->numerator > num1->numerator)
+                        {
+                            product->numerator = num2->numerator - num1->numerator;
+                            product->int_part--;
+                            product->numerator = product->denominator - product->numerator;
+                        }
+                        else
+                        {
+                            product->numerator = num1->numerator - num2->numerator;
+                        }
+                    }
+                    else//they are not homogeneous
+                    {
+                        product->denominator = get_lcm(num1->denominator,num2->denominator);
+
+                        uinteger_t num1_numerator = num1->numerator*(product->denominator/num1->denominator);
+                        uinteger_t num2_numerator = num2->numerator*(product->denominator/num2->denominator);
+                        if(num2_numerator > num1_numerator)
+                        {
+                            product->numerator = num2_numerator - num1_numerator;
+                            product->int_part--;
+                            product->numerator = product->denominator - product->numerator;
+                        }
+                        else
+                        {
+                            product->numerator = num1_numerator - num2_numerator;
+                        }
+                    }
+                }
+                else
+                {
+                    product->numerator = 0;
+                    product->denominator = 1;
+                }
+                break;
+            case NUM_EQUAL:
+                product->sign = NUM_SIGN_POSITIVE;
+                product->numerator = 0;
+                product->denominator = 1;
+        }
+    }
+
+    if(num2->state == NUM_STATE_DECIMAL)
+    {
+        product->state = NUM_STATE_DECIMAL;
+    }
+    else
+    {
+        product->state = num1->state;
+    }
+
+    simplify_num(product);
 }
 
-inline num_t divide_num(num_t num1, num_t num2)
+inline void rest_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
-	num_t aux;
-
-	num1 = simplify_num(num1);
-	num2 = simplify_num(num2);
-
-	aux.numerator = num1.numerator;
-	aux.denominator = num2.denominator;
-	aux = simplify_num(aux);
-	num1.numerator = aux.numerator;
-	num2.denominator = aux.denominator;
-
-	aux.numerator = num2.numerator;
-	aux.denominator = num1.denominator;
-	aux = simplify_num(aux);
-	num2.numerator = aux.numerator;
-	num1.denominator = aux.denominator;
-
-	num1.numerator *= num2.denominator;
-	num1.denominator *= num2.numerator;
-
-	num1 = simplify_num(num1);
-
-	if(num2.state == NUM_STATE_DECIMAL)
-	{
-		num1.state = NUM_STATE_DECIMAL;
-	}
-
-	return num1;
+    num_t subtrahend = *num2;
+    subtrahend.sign = (subtrahend.sign == NUM_SIGN_NEGATIVE ? NUM_SIGN_POSITIVE : NUM_SIGN_NEGATIVE);
+    sum_num(num1,&subtrahend,product);
 }
 
-inline num_t multiply_num(num_t num1, num_t num2)
+inline void divide_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
-    num1 = simplify_num(num1);
-    num2 = simplify_num(num2);
+    //A a/b / B c/d
+    //(A + a/b) / (B + c/d)
 
-	num1.numerator *= num2.numerator;
-	num1.denominator *= num2.denominator;
+    //(B + c/d)
+    num_t divisor;
+    divisor.int_part = 0;
+    divisor.numerator = num2->denominator;
+    divisor.denominator = num2->numerator + num2->int_part*num2->denominator;
+    divisor.sign = num2->sign;
+    divisor.state = NUM_STATE_FRACTION;
 
-    num1 = simplify_num(num1);
-
-	if(num2.state == NUM_STATE_DECIMAL)
-	{
-		num1.state = NUM_STATE_DECIMAL;
-	}
-
-	return num1;
+    multiply_num(num1,&divisor,product);    
 }
 
-num_t gcd_num(size_t nnums, ...)
+inline void multiply_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
-	num_t * nums = (num_t*)calloc(nnums,sizeof(num_t));
-	num_t gdc;
-	va_list va;
+    //+*+ --> +
+    //-*- --> +
+    if(num1->sign == num2->sign)
+    {
+        product->sign = NUM_SIGN_POSITIVE;
+    }
+    else
+    {
+        //-*+ == -
+        //+*- == -
+        product->sign = NUM_SIGN_NEGATIVE;
+    }
 
-	va_start(va,nnums);
+    if(num1->state != NUM_STATE_INT || num2->state != NUM_STATE_INT)
+    {
+        //A a/b * B c/d
+        //(A + a/b) * (B + c/d)
+        //A*B + A*c/d + B*a/b + a*c/b*d
+        //A*B + (A*c/d + B*a/b + a*c/b*d)
+        //A*B + x/y
+        
+        //A*B
+        product->int_part = num1->int_part*num2->int_part;
 
-	for(size_t i = 0; i < nnums; i++)
-	{
-		nums[i] = va_arg(va,num_t);
-	}
+        fraction_t total = {.numerator = 0, .denominator = 1};//it will become x/y
+        fraction_t fractions[3];//A*c/d + B*a/b + a*c/b*d
 
-	//iguala a todos bajo el mismo denominador
-	for(size_t i = 0; i < nnums; i++)
-	{
-		for (size_t j = 0; j < nnums; j++)
-		{
-			if(nums[j].denominator != nums[i].denominator)
-			{
-				num_t aux = nums[j];
+        //A*c/d == num1->int_part * num2->numerator/num2->denominator
+        fractions[0] = (fraction_t){.numerator = num1->int_part, .denominator = num2->denominator};
+        reduce_uints(&fractions[0].numerator,&fractions[0].denominator);
+        fractions[0].numerator *= num2->numerator;
 
-				nums[j].denominator *= nums[i].denominator;
-				nums[j].numerator *= nums[i].denominator;
+        //B*a/b == num2->int_part * num1->numerator/num1->denominator
+        fractions[1] = (fraction_t){.numerator = num2->int_part, .denominator = num1->denominator};
+        reduce_uints(&fractions[1].numerator,&fractions[1].denominator);
+        fractions[1].numerator *= num1->numerator;
 
-				nums[i].denominator *= aux.denominator;
-				nums[i].numerator *= aux.denominator;
-			}
-		}
-		for (size_t j = nnums-1;; j--)
-		{
-			if(nums[j].denominator != nums[i].denominator)
-			{
-				num_t aux = nums[j];
+        //a*c/b*d == num1->numerator * num2->numerator / num1->denominator * num2->denominator
+        {
+            fraction_t aux = {.numerator = num1->numerator, .denominator = num2->denominator};
+            fractions[2] = (fraction_t){.numerator = num2->numerator, .denominator = num1->denominator};
 
-				nums[j].denominator *= nums[i].denominator;
-				nums[j].numerator *= nums[i].denominator;
+            reduce_uints(&aux.numerator,&aux.denominator);
+            reduce_uints(&fractions[2].numerator,&fractions[2].denominator);
 
-				nums[i].denominator *= aux.denominator;
-				nums[i].numerator *= aux.denominator;
-			}
-			if(j == 0)
-			{
-				break;
-			}
-		}
-	}
+            fractions[2].numerator *= aux.numerator;
+            fractions[2].denominator *= aux.denominator;
+        }
 
-	for(size_t i = 0; i < nnums; i++)
-	{
-		printnum(nums[i]);
-	}
-	putchar(' ');
+        //get x/y
+        for(unsigned char i = 0; i < 3; i++)
+        {
+            uinteger_t lcm = get_lcm(total.denominator,fractions[i].denominator);
+            total.numerator = total.numerator*(lcm/total.denominator) + fractions[i].numerator*(lcm/fractions[i].denominator);
+            total.denominator = lcm;
+            reduce_uints(&total.denominator,&total.numerator);
+        }
 
-	free(nums);
+        //x/y
+        product->numerator = total.numerator;
+        product->denominator = total.denominator;
+        
+        //if one of them is decimal, the product is also a decimal        
+        if(num2->state == NUM_STATE_DECIMAL)
+        {
+            product->state = NUM_STATE_DECIMAL;
+        }
+        else
+        {
+            product->state = num1->state;
+        }
+    }
+    else
+    {
+        product->int_part = num1->int_part*num2->int_part;
+        product->numerator = 0;
+        product->denominator = 1;
+        product->state = NUM_STATE_INT;
+    }
 
-	va_end(va);
-
-	return gdc;
+    simplify_num(product);
 }
 
-bool str_to_num(const char * str, num_t * num)
+bool strtonum(const char * restrict str, num_t * const restrict num)
 {
-	integer_t pow10 = 1;
+    struct
+    {
+        uinteger_t numerator, denominator;
+    }divisor, dividend;
+    
+    while(isspace(*str))
+    {
+        str++;
+    }
 
-	if(sscanf(str,"%"SCNd64,&num->numerator) != 1)
-	{
-		return false;
-	}
+    switch(*str)
+    {
+        case '-':
+            str++;
+            num->sign = NUM_SIGN_NEGATIVE;
+            break;
+        case '+':
+            str++;
+        default:
+            num->sign = NUM_SIGN_POSITIVE;
+    }
+    if(sscanf(str,"%"PRIu64,&dividend.numerator) < 1)
+    {
+        return false;
+    }
+    while(isdigit(*str))
+    {
+        str++;
+    }
+    if(*str == '.')
+    {
+        str++;
+        num->state = NUM_STATE_DECIMAL;
 
-	if(*str == '-' || *str == '+')
-	{
-		str++;
-	}
+        uinteger_t decimal;
+        if(sscanf(str,"%"PRIu64,&decimal) < 1)
+        {
+            return false;
+        }
+        while(isdigit(*str))
+        {
+            str++;
+        }
+        dividend.denominator = 10;
+        for(uinteger_t deci = decimal; (deci/=10) != 0; dividend.denominator*=10);
+        dividend.numerator *= dividend.denominator;
+        dividend.numerator += decimal; 
+        reduce_uints(&dividend.numerator,&dividend.denominator);
+    }
+    else
+    {
+        num->state = NUM_STATE_INT;
+        dividend.denominator = 1;
+    }
 
-	while(isdigit(*str))
-	{
-		str++;
-	}
-	if(*str == '.')
-	{
-		integer_t aux;
+    if(*str == '/')
+    {
+        str++;
+        if(num->state != NUM_STATE_DECIMAL)
+        {
+            num->state = NUM_STATE_FRACTION;
+        }
 
-		str++;
-		while(*str == '0')
-		{
-			*str++;
-			pow10*=10;
-		}
-		if(sscanf(str,"%"SCNd64,&aux) != 1)
-		{
-			return false;
-		}
+        switch(*str)
+        {
+            case '-':
+                str++;
+                num->sign = (num->sign == NUM_SIGN_POSITIVE ? NUM_SIGN_NEGATIVE : NUM_SIGN_POSITIVE);
+                break;
+            case '+':
+                str++;
+        }
+        if(sscanf(str,"%"PRIu64,&divisor.numerator) < 1)
+        {
+            return false;
+        }
+        while(isdigit(*str))
+        {
+            str++;
+        }
+        if(*str == '.')
+        {
+            str++;
+            num->state = NUM_STATE_DECIMAL;
 
-		pow10 *= pow_integer(10,get_length_integer(aux));
+            uinteger_t decimal;
+            if(sscanf(str,"%"PRIu64,&decimal) < 1)
+            {
+                return false;
+            }
+            while(isdigit(*str))
+            {
+                str++;
+            }
+            divisor.denominator = 10;
+            for(uinteger_t deci = decimal; (deci/=10) != 0; divisor.denominator*=10);
+            divisor.numerator *= divisor.denominator;
+            divisor.numerator += decimal;
+            reduce_uints(&divisor.numerator,&divisor.denominator);
+        }
+        else
+        {
+            divisor.denominator = 1;
+        }
+    }
+    else
+    {
+        divisor.numerator = 1;
+        divisor.denominator = 1;
+    }
 
-		num->numerator *= pow10;
-		num->numerator += aux;
+    while(isspace(*str))
+    {
+        str++;
+    }
+    if(*str != '\0')
+    {
+        return false;
+    }
 
-		num->state = NUM_STATE_DECIMAL;
-	}
-	else
-	{
-		num->state = NUM_STATE_INT;
-	}
-	while(isdigit(*str))
-	{
-		str++;
-	}
+    reduce_uints(&dividend.numerator,&divisor.numerator);
+    reduce_uints(&dividend.denominator,&divisor.denominator);
 
-	while(isspace(*str))
-	{
-		str++;
-	}
+    num->numerator = dividend.numerator*divisor.denominator;
+    num->denominator = dividend.denominator*divisor.numerator;
+    num->int_part = 0;
 
-	if(*str == '/')
-	{
-		if(num->state != NUM_STATE_DECIMAL) num->state = NUM_STATE_FRACTION;
+    simplify_num(num);
 
-		str++;
-		if(sscanf(str,"%"SCNd64,&num->denominator) != 1)
-		{
-			return false;
-		}
-		num->denominator *= pow10;
-
-		if(*str == '-' || *str == '+')
-		{
-			str++;
-		}
-
-		while(isdigit(*str))
-		{
-			str++;
-		}
-		if(*str == '.')
-		{
-			integer_t aux;
-
-			str++;
-			pow10 = 1;
-			while(*str == '0')
-			{
-				pow10*=10;
-				str++;
-			}
-			if(sscanf(str,"%"SCNd64,&aux) != 1)
-			{
-				return false;
-			}
-
-			pow10 *= pow_integer(10,get_length_integer(aux));
-
-			num->denominator *= pow10;
-			num->denominator += aux;
-
-			num->numerator *= pow10;
-
-			num->state = NUM_STATE_DECIMAL;
-		}
-		while(isdigit(*str))
-		{
-			str++;
-		}
-	}
-	else
-	{
-		num->denominator = pow10;
-		if(pow10 == 1)
-		{
-			num->state = NUM_STATE_INT;
-		}
-	}
-
-	while(isspace(*str))
-	{
-		str++;
-	}
-	if(*str != '\0')
-	{
-		return false;
-	}
-
-	return true;
+    return true;
 }
 
-inline void printnum(num_t num)
+size_t printnum(char * restrict str, const num_t * const restrict num)
 {
-	switch (num.state)
-	{
-		case NUM_STATE_INT:
-			printf("%"PRId64, num.numerator);
-			break;
-		case NUM_STATE_FRACTION:
-			printf("%"PRId64 "/" "%"PRId64, num.numerator, num.denominator);
-			break;
-		case NUM_STATE_DECIMAL:
-			{
-				integer_t modulus, digit1, digit2;
+    size_t str_len = 0;
 
-				modulus = num.numerator % num.denominator;
-				digit1 = (modulus*10)/num.denominator;
+    if(num->sign == NUM_SIGN_NEGATIVE)
+    {
+        *str = '-';
+        str++;
+        str_len++;
+    }
 
-				modulus =  (modulus*10)%num.denominator;
-				digit2 = (modulus*10)/num.denominator;
+    switch (num->state)
+    {
+    case NUM_STATE_INT:
+        sprintf(str,"%"PRIu64,num->int_part);
+        break;
+    case NUM_STATE_FRACTION:
+        sprintf(str,"%"PRIu64"/%"PRIu64,num->int_part*num->denominator + num->numerator, num->denominator);
+        break;
+    case NUM_STATE_DECIMAL:
+        if(num->numerator != 0)
+        {
+            uinteger_t digit1 = (num->numerator*10) / num->denominator;
+            uinteger_t digit2 = (((num->numerator*10) % num->denominator) * 10) / num->denominator;
 
-				printf("%"PRId64".%"PRId64, num.numerator / num.denominator, digit1*10 + digit2);
-			}
-			break;
-	}
+            if(digit1 != 0)
+            {
+                if(digit2 != 0)
+                {
+                    sprintf(str,"%"PRIu64".%"PRIu64,num->int_part,digit1*10+digit2);
+                }
+                else
+                {
+                    sprintf(str,"%"PRIu64".%"PRIu64,num->int_part,digit1);
+                }
+            }
+            else
+            {
+                if(digit2 != 0)
+                {
+                    sprintf(str,"%"PRIu64".0""%"PRIu64,num->int_part,digit2);
+                }
+                else
+                {
+                    sprintf(str,"%"PRIu64,num->int_part);
+                }
+            }
+        }
+        break;
+    }
+
+    while(*str != '\0')
+    {
+        str++;
+        str_len++;
+    }
+
+    return str_len;
 }

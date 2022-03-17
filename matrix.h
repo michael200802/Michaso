@@ -16,4 +16,4 @@ typedef struct
         bool is_3x3;
 }matrix_t;
 
-void matrix_to_system(matrix_t matrix, text_t * text);
+void matrix_to_system(matrix_t matrix, text_t * const restrict text);

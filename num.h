@@ -1,55 +1,73 @@
+#ifndef NUM_H
+#define NUM_H
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <inttypes.h>
-#include <math.h>
-
-#ifndef NUM_H
-#define NUM_H
+#include <ctype.h>
 
 typedef int64_t integer_t;
 typedef uint64_t uinteger_t;
 
 typedef struct
 {
-	integer_t numerator;
-	integer_t denominator;
-	enum num_state{NUM_STATE_FRACTION,NUM_STATE_DECIMAL,NUM_STATE_INT} state;
+	uinteger_t numerator;
+	uinteger_t denominator;
+    uinteger_t int_part;
+	enum num_state{NUM_STATE_FRACTION, NUM_STATE_DECIMAL, NUM_STATE_INT} state;
+    enum num_sign{NUM_SIGN_POSITIVE, NUM_SIGN_NEGATIVE} sign;
 }num_t;
 
-#define INITIALIZER_NUM {.numerator = 0, .denominator = 1}
+typedef struct
+{
+	uinteger_t numerator;
+	uinteger_t denominator;
+}fraction_t;
 
-#define set_num(num,_numerator,_denominator,_state)	\
-	num.numerator = _numerator;						\
-	num.denominator = _denominator;					\
-	num.state = _state;
+typedef enum {NUM_GREATER,NUM_LESSER,NUM_EQUAL} compare_num_returnv_t;
 
-integer_t pow_integer(integer_t x, unsigned int y);
+compare_num_returnv_t compare_num(const num_t * const num1, const num_t * const num2);
 
-size_t get_length_integer(integer_t num);
+compare_num_returnv_t compare_num_with_int(const num_t * const restrict num, integer_t integer);
 
-#define abs_integer(num)\
-	(num < 0 ? num*-1 : num)
+void simplify_num(num_t * const restrict num);
 
-bool compare_num(num_t num1, num_t num2);
+void sum_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product);
 
-num_t abs_num(num_t num);
+void rest_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product);
 
-num_t simplify_num(num_t num);
+void divide_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product);
 
-num_t sum_num(num_t num1, num_t num2);
+void multiply_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product);
 
-num_t rest_num(num_t num1, num_t num2);
+bool strtonum(const char * restrict str, num_t * const restrict num);
 
-num_t divide_num(num_t num1, num_t num2);
+size_t printnum(char * restrict str, const num_t * const restrict num);
 
-num_t multiply_num(num_t num1, num_t num2);
+#define abs_integer(integer)\
+	(integer < 0 ? integer*-1 : integer)
 
-num_t gcd_num(size_t nnums, ...);
+#define abs_num(num)\
+	num.sign = NUM_SIGN_POSITIVE;
 
-bool str_to_num(const char * str, num_t * num);
+#define is_num_minus1(num)\
+	(num.sign == NUM_SIGN_NEGATIVE && num.int_part == 1 && num.numerator == 0)
 
-void printnum(num_t num);
+#define is_num_one(num)\
+	(num.sign == NUM_SIGN_POSITIVE && num.int_part == 1 && num.numerator == 0)
+
+#define is_num_zero(num)\
+	(num.int_part == 0 && num.numerator == 0)
+
+#define set_num(num,_numerator,_denominator,_sign,_state)	\
+	num.int_part = 0;										\
+	num.numerator = _numerator;						        \
+	num.denominator = _denominator;					        \
+    num.sign = _sign;                                       \
+	num.state = _state;										\
+	simplify_num(&num);
+
+#define INITIALIZER_NUM (num_t){.sign = NUM_SIGN_POSITIVE, .state = NUM_STATE_FRACTION, .int_part = 0, .numerator = 0, .denominator = 1}
 
 #endif
-

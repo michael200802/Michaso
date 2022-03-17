@@ -142,7 +142,7 @@ num_t get_det(const char * name, const num_t * denominator, const matrix_t * mat
 	num_t nums_product[NXN_MAXN*2];
 	for(size_t i = 0; i < NXN_MAXN*2; i++)
 	{
-		set_num(nums_product[i],1,1,NUM_STATE_INT);
+		set_num(nums_product[i],1,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
 	}
 	num_t nums_sum[2] = {INITIALIZER_NUM,INITIALIZER_NUM};
 	num_t det = INITIALIZER_NUM;
@@ -185,7 +185,9 @@ num_t get_det(const char * name, const num_t * denominator, const matrix_t * mat
 			nums_product_con++;
 			j = 0;
 		}
-		nums_product[nums_product_con] = multiply_num(nums_product[nums_product_con],nums[i]);
+		num_t product;
+		multiply_num(&nums_product[nums_product_con],&nums[i],&product);
+		nums_product[nums_product_con] = product;
 	}
 	nums_product_con++;
 
@@ -197,11 +199,13 @@ num_t get_det(const char * name, const num_t * denominator, const matrix_t * mat
 		{
 			j++;
 		}
-		nums_sum[j] = sum_num(nums_sum[j],nums_product[i]);
+		num_t result;
+		sum_num(&nums_sum[j],&nums_product[i],&result);
+		nums_sum[j] = result;
 	}
 
 	//get det
-	det = rest_num(nums_sum[0],nums_sum[1]);
+	rest_num(&nums_sum[0],&nums_sum[1],&det);
 
 	if(denominator != NULL)
 	{
@@ -372,7 +376,7 @@ num_t get_sysdet(const char * name, const matrix_t * matrix, hedit_t edit)
 	num_t nums_product[NXN_MAXN*2];
 	for(size_t i = 0; i < NXN_MAXN*2; i++)
 	{
-		set_num(nums_product[i],1,1,NUM_STATE_INT);
+		set_num(nums_product[i],1,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
 	}
 	num_t nums_sum[2] = {INITIALIZER_NUM,INITIALIZER_NUM};
 	num_t det = INITIALIZER_NUM;
@@ -415,7 +419,9 @@ num_t get_sysdet(const char * name, const matrix_t * matrix, hedit_t edit)
 			nums_product_con++;
 			j = 0;
 		}
-		nums_product[nums_product_con] = multiply_num(nums_product[nums_product_con],nums[i]);
+		num_t product;
+		multiply_num(&nums_product[nums_product_con],&nums[i],&product);
+		nums_product[nums_product_con] = product;
 	}
 	nums_product_con++;
 
@@ -427,11 +433,13 @@ num_t get_sysdet(const char * name, const matrix_t * matrix, hedit_t edit)
 		{
 			j++;
 		}
-		nums_sum[j] = sum_num(nums_sum[j],nums_product[i]);
+		num_t result;
+		sum_num(&nums_sum[j],&nums_product[i],&result);
+		nums_sum[j] = result;
 	}
 
 	//get det
-	det = rest_num(nums_sum[0],nums_sum[1]);
+	rest_num(&nums_sum[0],&nums_sum[1],&det);
 
     //show the two first steps
     //1: write the entire operation: {(...) + (...)} - {(...) + (...)}
@@ -546,10 +554,10 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 
 	for(size_t cur_row = 0; cur_row < matrix.nrows; cur_row++)
 	{
-		bool all_zero = true, last_zero = matrix.matrix[cur_row][matrix.ncolumns-1].numerator == 0;
+		bool all_zero = true, last_zero = is_num_zero(matrix.matrix[cur_row][matrix.ncolumns-1]);
 		for(size_t cur_col = 0, maxcol = matrix.ncolumns-1; cur_col < maxcol && all_zero; cur_col++)
 		{
-			all_zero = (matrix.matrix[cur_row][cur_col].numerator == 0);
+			all_zero = is_num_zero(matrix.matrix[cur_row][cur_col]);
 		}
 		if(all_zero)
 		{
@@ -564,6 +572,20 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 				add_ch_in_text(text,'.');
 			}
 			cat_text_in_edit(edit,text);
+			return;
+		}
+	}
+
+	for(size_t cur_col = 0, max_col = matrix.ncolumns-1; cur_col < max_col; cur_col++)
+	{
+		bool all_zero = true;
+		for(size_t cur_row = 0; cur_row < matrix.nrows && all_zero; cur_row++)
+		{
+			all_zero = is_num_zero(matrix.matrix[cur_row][cur_col]);
+		}
+		if(all_zero)
+		{
+			cat_str_in_edit(edit,"Sistema compatible indeterminado: Una de las filas esta conformada solo por ceros.");
 			return;
 		}
 	}
@@ -627,7 +649,7 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 	print_num_in_text(text_sys_det,sys_det);
 	text_sys_det_width = get_strlen_in_edit(text_sys_det.str);
 
-	if(sys_det.numerator == 0)
+	if(is_num_zero(sys_det))
 	{
 		cat_str_in_edit(edit,"\r\nSistema incompatible: no se puede resolver el sistema pues la determinante del sistema es cero.");
         return;
@@ -741,7 +763,9 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 		get_det_return_struct * return_struct;
 		pthread_join(get_det_threads[i],(void**)&return_struct);//waits for that det
 		cat_text_in_edit(edit,return_struct->process);//show process to get det
-		solution[i] = simplify_num(divide_num(return_struct->det, sys_det));//get solution for that column
+
+		divide_num(&return_struct->det, &sys_det, &solution[i]);//get solution for that column
+
 		free(return_struct);
 
 		//show solution for that column
@@ -771,33 +795,33 @@ void show_process_cramer(hedit_t edit, matrix_t matrix)
 
 //GAUSS-JORDAN------------------------------------
 
-static inline void get_common_product(num_t num1, num_t num2, num_t * prod1, num_t * prod2)
+static inline void lcm_multipliers(const num_t * const restrict num1, const num_t * const restrict num2, num_t * const restrict multiplier1, num_t * const restrict multiplier2)
 {
-	num_t quotient = divide_num(num1, num2);
-	set_num((*prod1),quotient.denominator,1,NUM_STATE_INT);
-	set_num((*prod2),quotient.numerator,1,NUM_STATE_INT);
-	*prod1 = simplify_num(*prod1);
-	*prod2 = simplify_num(*prod2);
+	num_t quotient;
+	divide_num(num1, num2, &quotient);
+	set_num((*multiplier1),quotient.denominator,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
+	set_num((*multiplier2),quotient.numerator,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
 }
 
 typedef enum {SUCCESS,FAILURE,ALREADY_0} make_it_zero_return;
 static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, size_t row, size_t col)
 {
 	size_t chosen_row;//chosen row for the rest
-	num_t prod1, prod2;//numbers that will be used to multiply the rows
-	short_text_t text_prod1 = {}, text_prod2 = {};//prod1 and prod2 in text
-	size_t prod1_len_in_edit, prod2_len_in_edit, prods_col_len_in_edit;//lens of prod1 and prod2
+	num_t multiplier1, multiplier2;//numbers that will be used to multiply the rows
+	short_text_t text_multiplier1 = {}, text_multiplier2 = {};//multiplier1 and multiplier2 in text
+	size_t multiplier1_len_in_edit, multiplier2_len_in_edit, prods_col_len_in_edit;//lens of multiplier1 and multiplier2
 	short_text_t text_rest = {};//text that will store "F1*x-F2*y"
 	size_t text_rest_len_in_edit;//text_rest len in edit
 	matrix_t rest;//the matrix that will store the rest between rows
 	print_matrix_args printm_args;//print rest
 	text_t buffer = {};
 
-	if(matrix->matrix[row][col].numerator == 0)
+	if(is_num_zero(matrix->matrix[row][col]))
 	{
 		return ALREADY_0;
 	}
 
+	//get the chosen row
 	chosen_row = row;
 	if(matrix->is_3x3)
 	{
@@ -830,25 +854,25 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 	}
 	if(chosen_row == row)
 	{
-		cat_str_in_edit(edit, "Sistema incompatible.");
+		cat_str_in_edit(edit, "Sistema incompatible: No se ha podido encontrar alguna manera de convertir a cero.");
 		return FAILURE;
 	}
 
-	get_common_product(matrix->matrix[row][col],matrix->matrix[chosen_row][col],&prod1,&prod2);
-	prod2.numerator *= -1;
+	lcm_multipliers(&matrix->matrix[row][col],&matrix->matrix[chosen_row][col],&multiplier1,&multiplier2);
+	multiplier2.numerator *= -1;
 
-	print_in_text(text_prod1,"F%zux",row+1);
-	print_num_in_text(text_prod1,prod1);
+	print_in_text(text_multiplier1,"F%zux",row+1);
+	print_num_in_text(text_multiplier1,multiplier1);
 
-	print_in_text(text_prod2,"F%zux",chosen_row+1);
-	print_num_in_text(text_prod2,prod2);
+	print_in_text(text_multiplier2,"F%zux",chosen_row+1);
+	print_num_in_text(text_multiplier2,multiplier2);
 
-	cat_text_in_text(text_rest,text_prod1);
+	cat_text_in_text(text_rest,text_multiplier1);
 	cat_str_in_text(text_rest," + ");
-	cat_text_in_text(text_rest,text_prod2);
+	cat_text_in_text(text_rest,text_multiplier2);
 
-	prod1_len_in_edit = get_strlen_in_edit(text_prod1.str);
-	prod2_len_in_edit = get_strlen_in_edit(text_prod2.str);
+	multiplier1_len_in_edit = get_strlen_in_edit(text_multiplier1.str);
+	multiplier2_len_in_edit = get_strlen_in_edit(text_multiplier2.str);
 	text_rest_len_in_edit = get_strlen_in_edit(text_rest.str);
 
 	prods_col_len_in_edit = text_rest_len_in_edit+2;
@@ -858,9 +882,11 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 	rest.is_3x3 = true;
 	for(size_t cur_col = 0; cur_col < rest.ncolumns; cur_col++)
 	{
-		rest.matrix[0][cur_col] = multiply_num(matrix->matrix[row][cur_col],prod1);
-		rest.matrix[1][cur_col] = multiply_num(matrix->matrix[chosen_row][cur_col],prod2);
-		rest.matrix[2][cur_col] = sum_num(rest.matrix[0][cur_col],rest.matrix[1][cur_col]);
+		multiply_num(&matrix->matrix[row][cur_col],&multiplier1,&rest.matrix[0][cur_col]);
+
+		multiply_num(&matrix->matrix[chosen_row][cur_col],&multiplier2,&rest.matrix[1][cur_col]);
+
+		sum_num(&rest.matrix[0][cur_col],&rest.matrix[1][cur_col],&rest.matrix[2][cur_col]);
 	}
 
 	get_print_matrix_args(&rest,&printm_args);
@@ -870,10 +896,10 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 			switch (cur_row)
 			{
 			case 0:
-				show_str_centered(buffer,text_prod1.str,prods_col_len_in_edit,prod1_len_in_edit);
+				show_str_centered(buffer,text_multiplier1.str,prods_col_len_in_edit,multiplier1_len_in_edit);
 				break;
 			case 1:
-				show_str_centered(buffer,text_prod2.str,prods_col_len_in_edit,prod2_len_in_edit);
+				show_str_centered(buffer,text_multiplier2.str,prods_col_len_in_edit,multiplier2_len_in_edit);
 				break;
 			case 2:
 				show_str_centered(buffer,text_rest.str,prods_col_len_in_edit,text_rest_len_in_edit);
@@ -905,7 +931,7 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 	for(size_t cur_col = 0; cur_col < matrix->ncolumns; cur_col++)
 	{
 		matrix->matrix[row][cur_col] = rest.matrix[2][cur_col];
-		if(rest.matrix[2][cur_col].numerator == 0)
+		if(is_num_zero(rest.matrix[2][cur_col]))
 		{
 			nzero++;
 		}
@@ -934,22 +960,34 @@ void solve_sys(hedit_t edit, matrix_t sys)
 	num_t solutions[NXN_MAXN];
 	for(size_t i = 0; i < NXN_MAXN; i++)
 	{
-		set_num(solutions[i],0,0,NUM_STATE_INT);
+		solutions[i] = INITIALIZER_NUM;
 	}
 	for(char cur_row = sys.nrows-1; cur_row != -1; cur_row--)
 	{
-		num_t total;
-		set_num(total,0,0,NUM_STATE_INT);
+		num_t total = INITIALIZER_NUM;
 		for(char cur_col = cur_row+1, max_col = sys.ncolumns-1; cur_col < max_col; cur_col++)
 		{
-			total = sum_num(total,multiply_num(sys.matrix[cur_row][cur_col],solutions[cur_col]));
+			num_t product;
+			multiply_num(&sys.matrix[cur_row][cur_col],&solutions[cur_col],&product);
+
+			num_t result;
+			sum_num(&total,&product,&result);
+
+			total = result;
+
 			sys.matrix[cur_row][cur_col].numerator = 0;
 		}
 
 		char cur_col = cur_row;
-		sys.matrix[cur_row][sys.ncolumns-1] = rest_num(sys.matrix[cur_row][sys.ncolumns-1],total);
-		sys.matrix[cur_row][sys.ncolumns-1] = divide_num(sys.matrix[cur_row][sys.ncolumns-1],sys.matrix[cur_row][cur_col]);
-		set_num(sys.matrix[cur_row][cur_col],1,1,NUM_STATE_INT);
+		num_t result;
+
+		rest_num(&sys.matrix[cur_row][sys.ncolumns-1],&total,&result);
+		sys.matrix[cur_row][sys.ncolumns-1] = result;
+
+		divide_num(&sys.matrix[cur_row][sys.ncolumns-1],&sys.matrix[cur_row][cur_col],&result);
+		sys.matrix[cur_row][sys.ncolumns-1] = result;
+		
+		set_num(sys.matrix[cur_row][cur_col],1,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
 		solutions[cur_col] = sys.matrix[cur_row][sys.ncolumns-1];
 
 		cat_str_in_text(buffer,"\r\n");
@@ -979,6 +1017,44 @@ matrix_t * show_process_gauss(hedit_t edit, matrix_t matrix)
 
     init_edit(edit);
 
+	for(size_t cur_row = 0; cur_row < matrix_result.nrows; cur_row++)
+	{
+		bool all_zero = true, last_elem_zero = is_num_zero(matrix_result.matrix[cur_row][matrix_result.ncolumns-1]);
+		for(size_t cur_col = 0, max_col = matrix_result.ncolumns-1; cur_col < max_col && all_zero; cur_col++)
+		{
+			all_zero = is_num_zero(matrix_result.matrix[cur_row][cur_col]);
+		}
+		if(all_zero)
+		{
+			if(last_elem_zero)
+			{
+				cat_str_in_edit(edit, "Sistema compatible indeterminado: Una de las ecuaciones es equivalente a 0 = 0.");
+				return NULL;
+			}
+			else
+			{
+				cat_str_in_text(buffer, "Sistema incompatible: Sistema incompatible: Una de las ecuaciones es equivalente a 0 = ");
+				print_num_in_text(buffer, matrix_result.matrix[cur_row][matrix.ncolumns-1]);
+				cat_text_in_edit(edit,buffer);
+				return NULL;
+			}
+		}
+	}
+
+	for(size_t cur_col = 0, max_col = matrix_result.ncolumns-1; cur_col < max_col; cur_col++)
+	{
+		bool all_zero = true;
+		for(size_t cur_row = 0; cur_row < matrix_result.nrows && all_zero; cur_row++)
+		{
+			all_zero = is_num_zero(matrix_result.matrix[cur_row][cur_col]);
+		}
+		if(all_zero)
+		{
+			cat_str_in_edit(edit, "Sistema compatible indeterminado: Una de las filas esta formada solo por ceros.");
+			return NULL;
+		}
+	}
+
 	get_print_matrix_args(&matrix_result,&printm_args);
 	print_matrix(buffer,printm_args,
 		{
@@ -1002,35 +1078,6 @@ matrix_t * show_process_gauss(hedit_t edit, matrix_t matrix)
 		}
 		);
 	cat_str_in_text(buffer,"\r\n");
-
-	bool indet_sys = false;
-	for(size_t cur_row = 0; cur_row < matrix_result.nrows; cur_row++)
-	{
-		bool all_zero = true, last_elem_zero = (matrix_result.matrix[cur_row][matrix_result.ncolumns-1].numerator == 0);
-		for(size_t cur_col = 0, max_col = matrix_result.ncolumns-1; cur_col < max_col && all_zero; cur_col++)
-		{
-			all_zero = (matrix_result.matrix[cur_row][cur_col].numerator == 0);
-		}
-		if(all_zero)
-		{
-			if(last_elem_zero)
-			{
-				indet_sys = true;
-			}
-			else
-			{
-				cat_str_in_text(buffer, "\r\n\r\nSistema incompatible.");
-				cat_text_in_edit(edit,buffer);
-				return NULL;
-			}
-		}
-	}
-	if(indet_sys)
-	{
-		cat_str_in_text(buffer, "\r\n\r\nSistema compatible indeterminado.");
-		cat_text_in_edit(edit,buffer);
-		return NULL;
-	}
 
 	cat_text_in_edit(edit,buffer);
 

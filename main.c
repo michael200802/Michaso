@@ -9,7 +9,7 @@
 #include "show_process_in_edit.h"
 #include <limits.h>
 
-#define NUMBER_MAX_LEN 8
+#define NUMBER_MAX_LEN 20
 
 #define LABEL_MATRIX_ELEM_ID 12
 #define COMBOBOX_NXN_ID 13
@@ -47,11 +47,12 @@ BOOL get_matrix(HWND (*matrix_edits)[NXN_MAXN+1], BOOL is_3x3, matrix_t * matrix
 		{
 			char buffer[NUMBER_MAX_LEN];
 			Edit_GetText(matrix_edits[i][j],buffer,NUMBER_MAX_LEN);
-			if(str_to_num(buffer,&matrix->matrix[i][j]) == false)
+			if(strtonum(buffer,&matrix->matrix[i][j]) == false)
 			{
 				return false;
 			}
-			printnum(matrix->matrix[i][j]);
+			printnum(buffer,&matrix->matrix[i][j]);
+			printf("%s ",buffer);
 		}
 		putchar('\n');
 	}
