@@ -1,7 +1,7 @@
 #Change to your selected compiler (this compiler only works for me, putting gcc instead would work just fine)
 
-compiler=x86_64-w64-mingw32-gcc -O3
-#compiler=gcc
+#compiler=x86_64-w64-mingw32-gcc -O3
+compiler=gcc
 
 _num.o: _num.c _num.h
 	$(compiler) -c _num.c -o $@
@@ -33,7 +33,7 @@ clean: *.o
 text_text: text_text.c text.o
 	$(compiler) $? -o $@
 
-num_num: num.o num_num.c
+num_num: _num.o num_num.c
 	$(compiler) $? -o $@
 
 #test

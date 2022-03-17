@@ -33,7 +33,7 @@ inline size_t get_length_integer(integer_t num)
 	return len;
 }
 
-inline bool is_num_greater(num_t num1, num_t num2)
+inline bool compare_num(num_t num1, num_t num2)
 {
 	num1 = simplify_num(num1);
 	num2 = simplify_num(num2);
@@ -326,6 +326,10 @@ bool str_to_num(const char * str, num_t * num)
 
 		num->state = NUM_STATE_DECIMAL;
 	}
+	else
+	{
+		num->state = NUM_STATE_INT;
+	}
 	while(isdigit(*str))
 	{
 		str++;
@@ -338,7 +342,7 @@ bool str_to_num(const char * str, num_t * num)
 
 	if(*str == '/')
 	{
-		num->state = NUM_STATE_FRACTION;
+		if(num->state != NUM_STATE_DECIMAL) num->state = NUM_STATE_FRACTION;
 
 		str++;
 		if(sscanf(str,"%"SCNd64,&num->denominator) != 1)
@@ -378,6 +382,8 @@ bool str_to_num(const char * str, num_t * num)
 			num->denominator += aux;
 
 			num->numerator *= pow10;
+
+			num->state = NUM_STATE_DECIMAL;
 		}
 		while(isdigit(*str))
 		{

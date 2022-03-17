@@ -31,7 +31,7 @@ size_t get_length_integer(integer_t num);
 #define abs_integer(num)\
 	(num < 0 ? num*-1 : num)
 
-bool is_num_greater(num_t num1, num_t num2);
+bool compare_num(num_t num1, num_t num2);
 
 num_t abs_num(num_t num);
 
