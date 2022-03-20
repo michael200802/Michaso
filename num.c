@@ -183,6 +183,10 @@ inline void simplify_num(num_t * const restrict num)
     {
         num->denominator = 1;
         num->state = NUM_STATE_INT;
+        if(num->int_part == 0)
+        {
+            num->sign = NUM_SIGN_POSITIVE;
+        }
     }
     else
     {
@@ -214,6 +218,17 @@ inline void simplify_num(num_t * const restrict num)
 inline void sum_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
     //just add
+    if(is_num_zero((*num1)))
+    {
+        *product = *num2;
+        return;
+    }
+    if(is_num_zero((*num2)))
+    {
+        *product = *num1;
+        return;
+    }
+
     if(num1->sign == num2->sign)
     {
         product->sign = num1->sign;
@@ -238,7 +253,7 @@ inline void sum_num(const num_t * const num1, const num_t * const num2, num_t * 
             product->denominator = 1;
         }
     }//they are the oppsitive of each other
-    else if(num1->state == num2->state && num1->int_part == num2->int_part && num1->numerator == num2->denominator && num1->numerator == num2->denominator)
+    else if(num1->state == num2->state && num1->int_part == num2->int_part && num1->denominator == num2->denominator && num1->numerator == num2->numerator)
     {
         product->int_part = 0;
         product->numerator = 0;
@@ -387,22 +402,36 @@ inline void rest_num(const num_t * const num1, const num_t * const num2, num_t *
 
 inline void divide_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
-    //A a/b / B c/d
-    //(A + a/b) / (B + c/d)
+    if(is_num_zero((*num1)))
+    {
+        *product = INITIALIZER_NUM;
+    }
+    else
+    {
+        //A a/b / B c/d
+        //(A + a/b) / (B + c/d)
 
-    //(B + c/d)
-    num_t divisor;
-    divisor.int_part = 0;
-    divisor.numerator = num2->denominator;
-    divisor.denominator = num2->numerator + num2->int_part*num2->denominator;
-    divisor.sign = num2->sign;
-    divisor.state = NUM_STATE_FRACTION;
+        //(B + c/d)
 
-    multiply_num(num1,&divisor,product);    
+        num_t divisor;
+        divisor.int_part = 0;
+        divisor.numerator = num2->denominator;
+        divisor.denominator = num2->numerator + num2->int_part*num2->denominator;
+        divisor.sign = num2->sign;
+        divisor.state = NUM_STATE_FRACTION;
+
+        multiply_num(num1,&divisor,product);
+    }   
 }
 
 inline void multiply_num(const num_t * const num1, const num_t * const num2, num_t * const restrict product)
 {
+    if(is_num_zero((*num1)) || is_num_zero((*num2)))
+    {
+        *product = INITIALIZER_NUM;
+        return;
+    }
+
     //+*+ --> +
     //-*- --> +
     if(num1->sign == num2->sign)

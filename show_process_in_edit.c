@@ -800,7 +800,7 @@ static inline void lcm_multipliers(const num_t * const restrict num1, const num_
 	num_t quotient;
 	divide_num(num1, num2, &quotient);
 	set_num((*multiplier1),quotient.denominator,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
-	set_num((*multiplier2),quotient.numerator,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
+	set_num((*multiplier2),quotient.int_part*quotient.denominator + quotient.numerator,1,NUM_SIGN_POSITIVE,NUM_STATE_INT);
 }
 
 typedef enum {SUCCESS,FAILURE,ALREADY_0} make_it_zero_return;
@@ -827,7 +827,7 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 	{
 		for(char cur_row = matrix->nrows-1; cur_row != -1; cur_row--)
 		{
-			if(matrix->matrix[cur_row][col].numerator != 0 && row != cur_row)
+			if(!is_num_zero(matrix->matrix[cur_row][col]) && row != cur_row)
 			{
 				chosen_row = cur_row;
 				break;
@@ -839,13 +839,13 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 		switch (row)
 		{
 		case 0:
-			if(matrix->matrix[1][col].numerator != 0)
+			if(!is_num_zero(matrix->matrix[1][col]))
 			{
 				chosen_row = 1;
 			}
 			break;
 		case 1:
-			if(matrix->matrix[0][col].numerator != 0)
+			if(!is_num_zero(matrix->matrix[0][col]))
 			{
 				chosen_row = 0;
 			}
@@ -859,7 +859,7 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 	}
 
 	lcm_multipliers(&matrix->matrix[row][col],&matrix->matrix[chosen_row][col],&multiplier1,&multiplier2);
-	multiplier2.numerator *= -1;
+	multiplier2.sign = NUM_SIGN_NEGATIVE;
 
 	print_in_text(text_multiplier1,"F%zux",row+1);
 	print_num_in_text(text_multiplier1,multiplier1);

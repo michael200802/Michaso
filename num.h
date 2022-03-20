@@ -68,6 +68,6 @@ size_t printnum(char * restrict str, const num_t * const restrict num);
 	num.state = _state;										\
 	simplify_num(&num);
 
-#define INITIALIZER_NUM (num_t){.sign = NUM_SIGN_POSITIVE, .state = NUM_STATE_FRACTION, .int_part = 0, .numerator = 0, .denominator = 1}
+#define INITIALIZER_NUM (num_t){.sign = NUM_SIGN_POSITIVE, .state = NUM_STATE_INT, .int_part = 0, .numerator = 0, .denominator = 1}
 
 #endif
