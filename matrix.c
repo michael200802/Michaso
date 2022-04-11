@@ -12,7 +12,7 @@ void matrix_to_system(matrix_t matrix, text_t * const restrict text)
 	{
         size_t nzeros = 0, no_zero_index;
         size_t j, maxj = matrix.ncolumns-1;
-        bool is_negative_last_elem = matrix.matrix[i][maxj].numerator < 0;
+        bool is_negative_last_elem = matrix.matrix[i][maxj].sign == NUM_SIGN_NEGATIVE;
         for(j = 0; j < maxj; j++)
         {
             if(is_num_zero(matrix.matrix[i][j]))
