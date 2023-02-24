@@ -859,7 +859,7 @@ static inline make_it_zero_return make_it_zero(hedit_t edit, matrix_t * matrix, 
 	}
 
 	lcm_multipliers(&matrix->matrix[row][col],&matrix->matrix[chosen_row][col],&multiplier1,&multiplier2);
-	multiplier2.sign = NUM_SIGN_NEGATIVE;
+	multiplier2.sign = (matrix->matrix[row][col].sign == matrix->matrix[chosen_row][col].sign ? NUM_SIGN_NEGATIVE: NUM_SIGN_POSITIVE);
 
 	print_in_text(text_multiplier1,"F%zux",row+1);
 	print_num_in_text(text_multiplier1,multiplier1);
